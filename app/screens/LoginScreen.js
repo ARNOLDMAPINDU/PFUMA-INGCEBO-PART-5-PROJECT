@@ -97,6 +97,7 @@ const userFromApi = (apiUser, token) => ({
   badgeNumber: apiUser.badge_number,
   station: apiUser.station,
   jurisdictionProvince: apiUser.jurisdiction_province,
+  officerTier: apiUser.officer_tier,
   verificationStatus: apiUser.verification_status,
   avatar: apiUser.full_name,
   avatarUrl: apiUser.avatar_url ? `${API}${apiUser.avatar_url}` : null,
