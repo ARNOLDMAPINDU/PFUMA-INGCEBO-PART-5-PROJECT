@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import {
-  ShieldCheck, CheckCircle, Eye, Tag, Repeat, Camera, X,
+  ShieldCheck, CheckCircle, Eye, Tag, Repeat, Camera, X, AlertTriangle,
 } from 'lucide-react-native';
 import { COLORS, FONTS, API } from '../config';
 import { authFetch, authJson, assetToFormFile } from '../api';
@@ -159,32 +159,85 @@ function ClearanceCard({ c, currentUser, busy, onResolve }) {
   );
 }
 
+// National-tier-only review card — a field officer's report doesn't reach
+// farmers until someone here confirms it (see backend /outbreaks/<id>/verify).
+function OutbreakCard({ o, busy, onVerify, onReject }) {
+  return (
+    <View style={styles.card}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.cardName}>{o.disease_name}</Text>
+          <Text style={styles.cardSub}>{o.district ? `${o.district}, ` : ''}{o.province} · reported by {o.reported_by_name}</Text>
+        </View>
+        <View style={styles.pendingBadge}><Text style={styles.pendingBadgeText}>Pending</Text></View>
+      </View>
+      {o.details ? <Text style={styles.detailRow}>{o.details}</Text> : null}
+      <View style={{ flexDirection: 'row', gap: 8, marginTop: 10 }}>
+        <TouchableOpacity style={styles.verifyBtn} onPress={() => onVerify(o.id)} disabled={busy === o.id} activeOpacity={0.8}>
+          {busy === o.id ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.verifyBtnText}>Verify &amp; Broadcast</Text>}
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.rejectBtn} onPress={() => onReject(o.id)} disabled={busy === o.id} activeOpacity={0.8}>
+          <Text style={styles.rejectBtnText}>Reject</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
 export default function PoliceScreen({ currentUser }) {
   const [verifications, setVerifications] = useState([]);
   const [clearances, setClearances] = useState([]);
   const [transfers, setTransfers] = useState([]);
+  const [outbreaks, setOutbreaks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [busyId, setBusyId] = useState(null);
   const [tab, setTab] = useState('verify');
+  const isNational = currentUser?.officerTier === 'national';
 
   const load = useCallback(async (refresh = false) => {
     if (!currentUser?.token) return;
     if (refresh) setRefreshing(true); else setLoading(true);
     try {
-      const [vRes, cRes, tRes] = await Promise.all([
+      const calls = [
         authFetch(currentUser, '/verifications?status=pending'),
         authFetch(currentUser, '/clearances?status=pending'),
         authFetch(currentUser, '/transfers'),
-      ]);
+      ];
+      // National-tier officers review unverified field reports before they
+      // broadcast — everyone else doesn't get this queue at all.
+      if (currentUser?.officerTier === 'national') calls.push(authFetch(currentUser, '/outbreaks?verified_status=pending'));
+      const [vRes, cRes, tRes, oRes] = await Promise.all(calls);
       if (vRes.ok) setVerifications(await vRes.json());
       if (cRes.ok) setClearances(await cRes.json());
       if (tRes.ok) setTransfers(await tRes.json());
+      if (oRes && oRes.ok) setOutbreaks(await oRes.json());
     } catch { /* offline */ }
     setLoading(false); setRefreshing(false);
-  }, [currentUser?.token]);
+  }, [currentUser?.token, currentUser?.officerTier]);
 
   useEffect(() => { load(); }, [load]);
+
+  const verifyOutbreak = async (outbreakId, action) => {
+    setBusyId(outbreakId);
+    try {
+      const res = await authFetch(currentUser, `/outbreaks/${outbreakId}/verify`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { Alert.alert('Could not update this report', data.error || 'Try again.'); setBusyId(null); return; }
+      setOutbreaks(prev => prev.filter(o => o.id !== outbreakId));
+    } catch { Alert.alert('Could not reach the PFUMA/INGCEBO API.'); }
+    setBusyId(null);
+  };
+
+  const confirmRejectOutbreak = (outbreakId) => {
+    Alert.alert(
+      'Reject this outbreak report?',
+      'It will NOT be broadcast to farmers, but the record stays for audit.',
+      [{ text: 'Cancel', style: 'cancel' }, { text: 'Reject', style: 'destructive', onPress: () => verifyOutbreak(outbreakId, 'reject') }],
+    );
+  };
 
   const resolveVerification = async (userId, status) => {
     setBusyId(userId);
@@ -233,6 +286,7 @@ export default function PoliceScreen({ currentUser }) {
           { id: 'verify', label: 'Verifications', count: verifications.length },
           { id: 'clear', label: 'Clearances', count: clearances.length },
           { id: 'transfer', label: 'Transfers', count: transfers.length },
+          ...(isNational ? [{ id: 'outbreak', label: 'Outbreaks', count: outbreaks.length }] : []),
         ].map(t => (
           <TouchableOpacity key={t.id} style={[styles.tabBtn, tab === t.id && styles.tabBtnActive]} onPress={() => setTab(t.id)} activeOpacity={0.8}>
             <Text style={[styles.tabBtnText, tab === t.id && styles.tabBtnTextActive]}>{t.label}{t.count ? ` (${t.count})` : ''}</Text>
@@ -267,6 +321,11 @@ export default function PoliceScreen({ currentUser }) {
                 <Text style={styles.transferStatus}>{t.status} · code {t.transfer_code}</Text>
               </View>
             ))
+          )}
+          {tab === 'outbreak' && (
+            outbreaks.length === 0 ? (
+              <View style={styles.emptyCard}><AlertTriangle size={24} color={COLORS.mutedDark} /><Text style={styles.emptyText}>No reports awaiting verification</Text></View>
+            ) : outbreaks.map(o => <OutbreakCard key={o.id} o={o} busy={busyId} onVerify={(id) => verifyOutbreak(id, 'verify')} onReject={confirmRejectOutbreak} />)
           )}
         </ScrollView>
       )}

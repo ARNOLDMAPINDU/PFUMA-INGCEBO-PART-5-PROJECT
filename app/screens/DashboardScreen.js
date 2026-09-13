@@ -1,13 +1,13 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
-  View, Text, Image, ImageBackground, ScrollView, TouchableOpacity, StyleSheet, StatusBar,
+  View, Text, Image, ImageBackground, ScrollView, TouchableOpacity, StyleSheet, StatusBar, TextInput, Alert, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   Globe, Sprout, Pill, Store, Stethoscope, AlertTriangle, CheckCircle, Check,
   MessageSquare, ShieldCheck, Wifi, Package, PhoneCall, HeartPulse, ShoppingCart,
-  ArrowRight, Users, Wheat, Wallet, Syringe, ListChecks, Compass, Tag, TrendingUp, Truck, Beef, Plus, BookOpen,
+  ArrowRight, Users, Wheat, Wallet, Syringe, ListChecks, Compass, Tag, TrendingUp, Truck, Beef, Plus, BookOpen, Radio,
 } from 'lucide-react-native';
 import { COLORS, FONTS, API } from '../config';
 import { authFetch } from '../api';
@@ -528,28 +528,106 @@ function VeterinarianDashboard({ currentUser, navigation }) {
   const [reportingHealth, setReportingHealth] = useState([]);
   const [certQueue, setCertQueue] = useState(0);
   const [outbreaks, setOutbreaks] = useState([]);
+  const [pendingOutbreaks, setPendingOutbreaks] = useState([]);
+  const [verifyBusyId, setVerifyBusyId] = useState(null);
+  const isNational = currentUser?.officerTier === 'national';
 
-  useEffect(() => {
+  const [showReportForm, setShowReportForm] = useState(false);
+  const [reportForm, setReportForm] = useState({ disease_name: '', district: '', details: '', affected_farms: '', animals_at_risk: '' });
+  const [reportBusy, setReportBusy] = useState(false);
+  const [reportFeedback, setReportFeedback] = useState('');
+
+  const [showBroadcastForm, setShowBroadcastForm] = useState(false);
+  const [broadcastForm, setBroadcastForm] = useState({ title: '', message: '', district: '' });
+  const [broadcastBusy, setBroadcastBusy] = useState(false);
+  const [broadcastFeedback, setBroadcastFeedback] = useState('');
+
+  const loadVetData = useCallback(async () => {
     if (!currentUser?.id) return;
-    (async () => {
+    try {
+      const res = await authFetch(currentUser, '/vet/farm-registry');
+      if (res.ok) setFarms(await res.json());
+    } catch { /* offline — leave empty, no fake fallback */ }
+    try {
+      const res = await authFetch(currentUser, '/vet/reporting-health');
+      if (res.ok) setReportingHealth(await res.json());
+    } catch { /* offline */ }
+    try {
+      const res = await authFetch(currentUser, '/vet/cert-queue');
+      if (res.ok) setCertQueue((await res.json()).pending);
+    } catch { /* offline */ }
+    try {
+      const res = await authFetch(currentUser, '/outbreaks');
+      if (res.ok) setOutbreaks(await res.json());
+    } catch { /* offline */ }
+    // National-tier officers review unverified field reports before they
+    // broadcast — everyone else doesn't get this queue at all.
+    if (currentUser?.officerTier === 'national') {
       try {
-        const res = await authFetch(currentUser, '/vet/farm-registry');
-        if (res.ok) setFarms(await res.json());
-      } catch { /* offline — leave empty, no fake fallback */ }
-      try {
-        const res = await authFetch(currentUser, '/vet/reporting-health');
-        if (res.ok) setReportingHealth(await res.json());
+        const res = await authFetch(currentUser, '/outbreaks?verified_status=pending');
+        if (res.ok) setPendingOutbreaks(await res.json());
       } catch { /* offline */ }
-      try {
-        const res = await authFetch(currentUser, '/vet/cert-queue');
-        if (res.ok) setCertQueue((await res.json()).pending);
-      } catch { /* offline */ }
-      try {
-        const res = await authFetch(currentUser, '/outbreaks');
-        if (res.ok) setOutbreaks(await res.json());
-      } catch { /* offline */ }
-    })();
-  }, [currentUser?.id]);
+    }
+  }, [currentUser?.id, currentUser?.officerTier]);
+
+  useEffect(() => { loadVetData(); }, [loadVetData]);
+
+  const submitOutbreak = async () => {
+    if (!reportForm.disease_name.trim()) return;
+    setReportBusy(true);
+    try {
+      const res = await authFetch(currentUser, '/outbreaks', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(reportForm),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { Alert.alert('Could not submit report', data.error || 'Try again.'); setReportBusy(false); return; }
+      setShowReportForm(false);
+      setReportForm({ disease_name: '', district: '', details: '', affected_farms: '', animals_at_risk: '' });
+      setReportFeedback('Submitted for verification — a national-tier officer must confirm it before farmers are notified.');
+      setTimeout(() => setReportFeedback(''), 6000);
+      await loadVetData();
+    } catch { Alert.alert('Could not reach the PFUMA/INGCEBO API.'); }
+    setReportBusy(false);
+  };
+
+  const verifyOutbreak = async (outbreakId, action) => {
+    setVerifyBusyId(outbreakId);
+    try {
+      const res = await authFetch(currentUser, `/outbreaks/${outbreakId}/verify`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { Alert.alert('Could not update this report', data.error || 'Try again.'); setVerifyBusyId(null); return; }
+      await loadVetData();
+    } catch { Alert.alert('Could not reach the PFUMA/INGCEBO API.'); }
+    setVerifyBusyId(null);
+  };
+
+  const confirmRejectOutbreak = (outbreakId) => {
+    Alert.alert(
+      'Reject this outbreak report?',
+      'It will NOT be broadcast to farmers, but the record stays for audit.',
+      [{ text: 'Cancel', style: 'cancel' }, { text: 'Reject', style: 'destructive', onPress: () => verifyOutbreak(outbreakId, 'reject') }],
+    );
+  };
+
+  const submitBroadcast = async () => {
+    if (!broadcastForm.message.trim()) return;
+    setBroadcastBusy(true);
+    try {
+      const res = await authFetch(currentUser, '/broadcasts', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...broadcastForm, province: currentUser?.province }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { Alert.alert('Could not send broadcast', data.error || 'Try again.'); setBroadcastBusy(false); return; }
+      setShowBroadcastForm(false);
+      setBroadcastForm({ title: '', message: '', district: '' });
+      setBroadcastFeedback(`Sent to ${data.notified_count ?? 0} farmer(s).`);
+      setTimeout(() => setBroadcastFeedback(''), 5000);
+    } catch { Alert.alert('Could not reach the PFUMA/INGCEBO API.'); }
+    setBroadcastBusy(false);
+  };
 
   const activeOutbreak = outbreaks[0];
 
@@ -624,6 +702,89 @@ function VeterinarianDashboard({ currentUser, navigation }) {
         ) : (
           <Text style={{ color: '#7C7268', fontSize: 12, lineHeight: 18 }}>No active outbreaks reported in {province}.</Text>
         )}
+        <TouchableOpacity onPress={() => setShowReportForm(p => !p)} style={{ marginTop: 12 }} activeOpacity={0.8}>
+          <Text style={{ color: '#8A9C68', fontSize: 11, fontFamily: FONTS.extrabold, textTransform: 'uppercase' }}>{showReportForm ? 'Cancel' : 'Report an outbreak →'}</Text>
+        </TouchableOpacity>
+        {showReportForm && (
+          <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.1)', paddingTop: 12, gap: 8 }}>
+            <TextInput placeholder="Disease name *" placeholderTextColor="#7C7268" value={reportForm.disease_name}
+              onChangeText={v => setReportForm(p => ({ ...p, disease_name: v }))}
+              style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 11, fontSize: 12, color: '#fff' }} />
+            <TextInput placeholder="District" placeholderTextColor="#7C7268" value={reportForm.district}
+              onChangeText={v => setReportForm(p => ({ ...p, district: v }))}
+              style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 11, fontSize: 12, color: '#fff' }} />
+            <TextInput placeholder="Affected farms (number)" placeholderTextColor="#7C7268" keyboardType="number-pad" value={reportForm.affected_farms}
+              onChangeText={v => setReportForm(p => ({ ...p, affected_farms: v }))}
+              style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 11, fontSize: 12, color: '#fff' }} />
+            <TextInput placeholder="Animals at risk, e.g. ~200 cattle" placeholderTextColor="#7C7268" value={reportForm.animals_at_risk}
+              onChangeText={v => setReportForm(p => ({ ...p, animals_at_risk: v }))}
+              style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 11, fontSize: 12, color: '#fff' }} />
+            <TextInput placeholder="Restriction / notes" placeholderTextColor="#7C7268" value={reportForm.details} multiline numberOfLines={2}
+              onChangeText={v => setReportForm(p => ({ ...p, details: v }))}
+              style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 11, fontSize: 12, color: '#fff', minHeight: 60, textAlignVertical: 'top' }} />
+            <TouchableOpacity onPress={submitOutbreak} disabled={reportBusy} activeOpacity={0.85}
+              style={{ backgroundColor: '#B5342C', borderRadius: 12, paddingVertical: 12, alignItems: 'center', opacity: reportBusy ? 0.6 : 1 }}>
+              {reportBusy ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ color: '#fff', fontSize: 12, fontFamily: FONTS.extrabold, textTransform: 'uppercase' }}>File Outbreak Report</Text>}
+            </TouchableOpacity>
+          </View>
+        )}
+        {!!reportFeedback && <Text style={{ marginTop: 10, color: '#8A9C68', fontSize: 12, fontFamily: FONTS.bold }}>{reportFeedback}</Text>}
+      </View>
+
+      {/* National-tier-only review queue — a field officer's report doesn't
+          reach farmers until someone here confirms it. */}
+      {isNational && pendingOutbreaks.length > 0 && (
+        <>
+          <SectionLabel light icon={ShieldCheck}>{`PENDING VERIFICATION (${pendingOutbreaks.length})`}</SectionLabel>
+          <View style={[s.panel, { backgroundColor: 'rgba(213,168,92,0.12)', borderColor: 'rgba(213,168,92,0.3)', borderWidth: 1 }]}>
+            {pendingOutbreaks.map((o, i) => (
+              <View key={o.id} style={{ marginBottom: i === pendingOutbreaks.length - 1 ? 0 : 14, paddingBottom: i === pendingOutbreaks.length - 1 ? 0 : 14, borderBottomWidth: i === pendingOutbreaks.length - 1 ? 0 : 1, borderBottomColor: 'rgba(255,255,255,0.08)' }}>
+                <Text style={{ color: '#fff', fontSize: 14, fontFamily: FONTS.extrabold }}>{o.disease_name}</Text>
+                <Text style={{ color: '#968C82', fontSize: 11, marginTop: 2, marginBottom: 6 }}>
+                  {o.district ? `${o.district}, ` : ''}{o.province} · reported by {o.reported_by_name}
+                </Text>
+                {!!o.details && <Text style={{ color: '#7C7268', fontSize: 11, marginBottom: 8 }}>{o.details}</Text>}
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <TouchableOpacity onPress={() => verifyOutbreak(o.id, 'verify')} disabled={verifyBusyId === o.id} activeOpacity={0.85}
+                    style={{ flex: 1, backgroundColor: '#57633E', borderRadius: 10, paddingVertical: 10, alignItems: 'center', opacity: verifyBusyId === o.id ? 0.6 : 1 }}>
+                    {verifyBusyId === o.id ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ color: '#fff', fontSize: 11, fontFamily: FONTS.extrabold, textTransform: 'uppercase' }}>Verify &amp; Broadcast</Text>}
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => confirmRejectOutbreak(o.id)} disabled={verifyBusyId === o.id} activeOpacity={0.85}
+                    style={{ flex: 1, backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 10, paddingVertical: 10, alignItems: 'center', opacity: verifyBusyId === o.id ? 0.6 : 1 }}>
+                    <Text style={{ color: 'rgba(247,243,237,0.75)', fontSize: 11, fontFamily: FONTS.extrabold, textTransform: 'uppercase' }}>Reject</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
+
+      {/* Broadcast to farmers — a general alert, not tied to a specific
+          outbreak report (that one fans out on its own once verified). */}
+      <SectionLabel light icon={Radio}>BROADCAST TO FARMERS</SectionLabel>
+      <View style={[s.panel, { backgroundColor: '#3B342D', borderColor: '#554D45', borderWidth: 1 }]}>
+        <TouchableOpacity onPress={() => setShowBroadcastForm(p => !p)} activeOpacity={0.8}>
+          <Text style={{ color: '#8A9C68', fontSize: 11, fontFamily: FONTS.extrabold, textTransform: 'uppercase' }}>{showBroadcastForm ? 'Cancel' : 'Compose a message →'}</Text>
+        </TouchableOpacity>
+        {showBroadcastForm && (
+          <View style={{ marginTop: 12, gap: 8 }}>
+            <TextInput placeholder="Title" placeholderTextColor="#7C7268" value={broadcastForm.title}
+              onChangeText={v => setBroadcastForm(p => ({ ...p, title: v }))}
+              style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 11, fontSize: 12, color: '#fff' }} />
+            <TextInput placeholder="District (optional — narrows the audience)" placeholderTextColor="#7C7268" value={broadcastForm.district}
+              onChangeText={v => setBroadcastForm(p => ({ ...p, district: v }))}
+              style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 11, fontSize: 12, color: '#fff' }} />
+            <TextInput placeholder="Message *" placeholderTextColor="#7C7268" value={broadcastForm.message} multiline numberOfLines={3}
+              onChangeText={v => setBroadcastForm(p => ({ ...p, message: v }))}
+              style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, padding: 11, fontSize: 12, color: '#fff', minHeight: 70, textAlignVertical: 'top' }} />
+            <TouchableOpacity onPress={submitBroadcast} disabled={broadcastBusy} activeOpacity={0.85}
+              style={{ backgroundColor: COLORS.primary, borderRadius: 12, paddingVertical: 12, alignItems: 'center', opacity: broadcastBusy ? 0.6 : 1 }}>
+              {broadcastBusy ? <ActivityIndicator size="small" color="#fff" /> : <Text style={{ color: '#fff', fontSize: 12, fontFamily: FONTS.extrabold, textTransform: 'uppercase' }}>Send to {province}</Text>}
+            </TouchableOpacity>
+          </View>
+        )}
+        {!!broadcastFeedback && <Text style={{ marginTop: 10, color: '#8A9C68', fontSize: 12, fontFamily: FONTS.bold }}>{broadcastFeedback}</Text>}
       </View>
 
       {/* Quick Actions */}
