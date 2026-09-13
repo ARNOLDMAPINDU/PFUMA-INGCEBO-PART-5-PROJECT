@@ -4,7 +4,7 @@ import {
   CheckCircle, XCircle, ShoppingCart, AlertTriangle, Handshake, Package,
   Ban, RotateCcw, Satellite, Navigation, Crosshair, Thermometer, Heart,
   BatteryMedium, Play, Pause, RadioTower, Target, Save, Trash2,
-  Upload, Database, FileSpreadsheet, UserPlus, Eye, X, MapPin, Calendar, Shield, DollarSign, Tag, RefreshCw, Key,
+  Upload, Database, FileSpreadsheet, UserPlus, Eye, X, MapPin, Calendar, Shield, DollarSign, Tag, RefreshCw, Key, Crown,
 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
@@ -127,6 +127,24 @@ const UsersTab = ({ currentUser }) => {
     setBusyId(null);
   };
 
+  // Promotes/demotes a Vet or Police account between region-scoped
+  // ('field') and nationwide ('national') read access — a real chief/DVS
+  // head/senior ZRP command, who is also who verifies an outbreak report
+  // before it broadcasts to farmers. Deliberately Admin-only.
+  const setOfficerTier = async (u, tier) => {
+    setBusyId(u.id);
+    try {
+      const res = await fetch(`${API}/admin/users/${u.id}/officer-tier`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+        body: JSON.stringify({ officer_tier: tier }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { window.alert(data.error || 'Could not update this officer\'s tier.'); return; }
+      await load();
+    } catch { window.alert('Could not reach the PFUMA/INGCEBO API.'); }
+    setBusyId(null);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-3">
@@ -194,6 +212,17 @@ const UsersTab = ({ currentUser }) => {
                   <button onClick={() => verifyNextOfKin(u.id)} disabled={busyId === u.id} className="shrink-0 p-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-lg transition disabled:opacity-50" aria-label={`Verify ${u.full_name}'s next of kin`} title={`Verify next of kin: ${u.next_of_kin_name}`}>
                     <UserPlus size={14} />
                   </button>
+                )}
+                {(u.role === 'Veterinarian' || u.role === 'Police') && (
+                  u.officer_tier === 'national' ? (
+                    <button onClick={() => setOfficerTier(u, 'field')} disabled={busyId === u.id} className="shrink-0 p-1.5 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg transition disabled:opacity-50" aria-label={`Demote ${u.full_name} to field tier`} title="National tier — click to demote to field-only">
+                      <Crown size={14} />
+                    </button>
+                  ) : (
+                    <button onClick={() => setOfficerTier(u, 'national')} disabled={busyId === u.id} className="shrink-0 p-1.5 bg-gray-50 hover:bg-purple-100 text-gray-400 hover:text-purple-700 rounded-lg transition disabled:opacity-50" aria-label={`Promote ${u.full_name} to national tier`} title="Field tier — click to promote to national (chief/senior)">
+                      <Crown size={14} />
+                    </button>
+                  )
                 )}
                 {u.id !== currentUser.id && (
                   <button onClick={() => resetPassword(u)} disabled={busyId === u.id} className="shrink-0 p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg transition disabled:opacity-50" aria-label={`Reset ${u.full_name}'s password`} title="Reset password">

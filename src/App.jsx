@@ -1046,6 +1046,8 @@ const VeterinarianDashboard = ({ animals, notifications, setActiveTab, currentUs
   const [reportingHealth, setReportingHealth] = useState([]);
   const [certQueue, setCertQueue] = useState(0);
   const [outbreaks, setOutbreaks] = useState([]);
+  const [pendingOutbreaks, setPendingOutbreaks] = useState([]);
+  const [verifyBusyId, setVerifyBusyId] = useState(null);
   const [vetRequests, setVetRequests] = useState([]);
   const [claimBusyId, setClaimBusyId] = useState(null);
   const [witnessQueue, setWitnessQueue] = useState([]);
@@ -1079,6 +1081,15 @@ const VeterinarianDashboard = ({ animals, notifications, setActiveTab, currentUs
       const res = await fetch(`${API}/outbreaks`, { headers });
       if (res.ok) setOutbreaks(await res.json());
     } catch { /* offline */ }
+    // National-tier officers review unverified field reports before they
+    // broadcast — everyone else doesn't get this queue at all (the
+    // backend would reject the request anyway, this just skips the call).
+    if (currentUser?.officerTier === 'national') {
+      try {
+        const res = await fetch(`${API}/outbreaks?verified_status=pending`, { headers });
+        if (res.ok) setPendingOutbreaks(await res.json());
+      } catch { /* offline */ }
+    }
     try {
       const res = await fetch(`${API}/vet-requests?status=open`, { headers });
       if (res.ok) setVetRequests(await res.json());
@@ -1091,7 +1102,7 @@ const VeterinarianDashboard = ({ animals, notifications, setActiveTab, currentUs
       const res = await fetch(`${API}/movement-permits?status=pending`, { headers });
       if (res.ok) setPermitQueue(await res.json());
     } catch { /* offline */ }
-  }, [currentUser?.token]);
+  }, [currentUser?.token, currentUser?.officerTier]);
 
   useEffect(() => { loadVetData(); }, [loadVetData]);
 
@@ -1162,12 +1173,27 @@ const VeterinarianDashboard = ({ animals, notifications, setActiveTab, currentUs
       if (res.ok) {
         setShowReportForm(false);
         setReportForm({ disease_name: '', district: '', details: '', affected_farms: '', animals_at_risk: '' });
-        setReportFeedback(`Reported — ${data.notified_count ?? 0} farmer(s) in ${currentUser?.province || 'your province'} notified.`);
-        setTimeout(() => setReportFeedback(''), 5000);
+        setReportFeedback(`Submitted for verification — a national-tier officer must confirm it before farmers are notified.`);
+        setTimeout(() => setReportFeedback(''), 6000);
         await loadVetData();
       }
     } catch { /* offline */ }
     setReportBusy(false);
+  };
+
+  const verifyOutbreak = async (outbreakId, action) => {
+    if (action === 'reject' && !window.confirm('Reject this outbreak report? It will NOT be broadcast to farmers, but the record stays for audit.')) return;
+    setVerifyBusyId(outbreakId);
+    try {
+      const res = await fetch(`${API}/outbreaks/${outbreakId}/verify`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (!res.ok) { window.alert(data.error || 'Could not update this report.'); return; }
+      await loadVetData();
+    } catch { window.alert('Could not reach the PFUMA/INGCEBO API.'); }
+    setVerifyBusyId(null);
   };
 
   const submitBroadcast = async (e) => {
@@ -1404,6 +1430,38 @@ const VeterinarianDashboard = ({ animals, notifications, setActiveTab, currentUs
             )}
             {reportFeedback && <p className="mt-3 text-xs text-green-400 font-bold">{reportFeedback}</p>}
           </div>
+
+          {/* National-tier-only review queue — a field officer's report
+              doesn't reach farmers until someone here confirms it. */}
+          {currentUser?.officerTier === 'national' && pendingOutbreaks.length > 0 && (
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <ShieldCheck size={16} className="text-amber-400" />
+                <h3 className="text-sm font-bold text-amber-200">Pending Verification ({pendingOutbreaks.length})</h3>
+              </div>
+              <div className="space-y-3">
+                {pendingOutbreaks.map(o => (
+                  <div key={o.id} className="bg-black/20 rounded-xl p-3">
+                    <p className="text-sm font-bold text-white">{o.disease_name}</p>
+                    <p className="text-xs text-gray-400 font-medium mb-1">
+                      {o.district ? `${o.district}, ` : ''}{o.province} · reported by {o.reported_by_name}
+                    </p>
+                    {o.details && <p className="text-xs text-gray-500 mb-2">{o.details}</p>}
+                    <div className="flex gap-2">
+                      <button onClick={() => verifyOutbreak(o.id, 'verify')} disabled={verifyBusyId === o.id}
+                        className="flex-1 py-2 bg-green-600 text-white rounded-lg text-xs font-bold uppercase hover:bg-green-700 transition disabled:opacity-50">
+                        Verify &amp; Broadcast
+                      </button>
+                      <button onClick={() => verifyOutbreak(o.id, 'reject')} disabled={verifyBusyId === o.id}
+                        className="flex-1 py-2 bg-white/10 text-gray-300 rounded-lg text-xs font-bold uppercase hover:bg-white/20 transition disabled:opacity-50">
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Broadcast to farmers — a general alert, not tied to a specific
               outbreak report (that one fans out on its own automatically). */}
@@ -2520,7 +2578,36 @@ const PoliceDashboard = ({ currentUser, setActiveTab, notifications, onMessageFa
   const [showOfficerPassword, setShowOfficerPassword] = useState(false);
   const setOfficerField = (k, v) => setOfficerForm(p => ({ ...p, [k]: v }));
 
+  const [pendingOutbreaks, setPendingOutbreaks] = useState([]);
+  const [verifyBusyId, setVerifyBusyId] = useState(null);
+
   const authHeaders = { Authorization: `Bearer ${currentUser?.token}` };
+
+  const loadPendingOutbreaks = useCallback(async () => {
+    if (currentUser?.officerTier !== 'national') return;
+    try {
+      const res = await fetch(`${API}/outbreaks?verified_status=pending`, { headers: authHeaders });
+      if (res.ok) setPendingOutbreaks(await res.json());
+    } catch { /* offline */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?.token, currentUser?.officerTier]);
+
+  useEffect(() => { loadPendingOutbreaks(); }, [loadPendingOutbreaks]);
+
+  const verifyOutbreak = async (outbreakId, action) => {
+    if (action === 'reject' && !window.confirm('Reject this outbreak report? It will NOT be broadcast to farmers, but the record stays for audit.')) return;
+    setVerifyBusyId(outbreakId);
+    try {
+      const res = await fetch(`${API}/outbreaks/${outbreakId}/verify`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', ...authHeaders },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (!res.ok) { window.alert(data.error || 'Could not update this report.'); return; }
+      await loadPendingOutbreaks();
+    } catch { window.alert('Could not reach the PFUMA/INGCEBO API.'); }
+    setVerifyBusyId(null);
+  };
 
   const provisionOfficer = async (e) => {
     e.preventDefault();
@@ -2875,6 +2962,40 @@ const PoliceDashboard = ({ currentUser, setActiveTab, notifications, onMessageFa
           <p className="text-xs text-gray-500 font-medium mt-1">Reported theft, breach &amp; security incidents</p>
         </div>
       </div>
+
+      {/* National-tier-only review queue — a field officer's outbreak
+          report doesn't reach farmers until someone here confirms it. */}
+      {currentUser?.officerTier === 'national' && pendingOutbreaks.length > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <ShieldCheck size={16} className="text-amber-400" />
+            <h3 className="text-sm font-bold text-amber-200">Outbreak Reports Pending Verification ({pendingOutbreaks.length})</h3>
+          </div>
+          <div className="space-y-3">
+            {pendingOutbreaks.map(o => (
+              <div key={o.id} className="bg-black/20 rounded-xl p-3 flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <p className="text-sm font-bold text-white">{o.disease_name}</p>
+                  <p className="text-xs text-gray-400 font-medium">
+                    {o.district ? `${o.district}, ` : ''}{o.province} · reported by {o.reported_by_name}
+                  </p>
+                  {o.details && <p className="text-xs text-gray-500 mt-1">{o.details}</p>}
+                </div>
+                <div className="flex gap-2 shrink-0">
+                  <button onClick={() => verifyOutbreak(o.id, 'verify')} disabled={verifyBusyId === o.id}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg text-xs font-bold uppercase hover:bg-green-700 transition disabled:opacity-50">
+                    Verify &amp; Broadcast
+                  </button>
+                  <button onClick={() => verifyOutbreak(o.id, 'reject')} disabled={verifyBusyId === o.id}
+                    className="px-4 py-2 bg-white/10 text-gray-300 rounded-lg text-xs font-bold uppercase hover:bg-white/20 transition disabled:opacity-50">
+                    Reject
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 

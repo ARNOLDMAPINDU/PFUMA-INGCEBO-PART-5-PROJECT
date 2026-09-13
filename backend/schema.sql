@@ -43,6 +43,11 @@ CREATE TABLE IF NOT EXISTS users (
   jurisdiction_province VARCHAR(60),
   -- Institution-specific (bank/insurer verifying valuation certificates)
   institution_type ENUM('Bank','Insurer','Other') NULL,
+  -- Vet/Police-specific: 'national' sees across every province instead of
+  -- just their own (see officer_region()/is_national_officer() in app.py),
+  -- and is who's authorized to verify an outbreak report before it
+  -- broadcasts to farmers. Admin-assigned only, everyone starts 'field'.
+  officer_tier   ENUM('field','national') NOT NULL DEFAULT 'field',
   -- Auth & signup verification
   password_hash  VARCHAR(255),
   verification_status ENUM('pending','verified','rejected') DEFAULT 'pending',
@@ -487,9 +492,13 @@ CREATE TABLE IF NOT EXISTS cooperative_vet_requests (
 );
 
 -- ── OUTBREAKS ──────────────────────────────────────────────────
--- Disease outbreak reports filed by a Vet or Police officer. Visible to
--- every user in the affected province (a real safety warning), not just
--- Vet/Police oversight — see /outbreaks GET.
+-- Disease outbreak reports filed by a Vet or Police officer. Starts
+-- verified_status='pending' and is NOT broadcast to farmers until a
+-- national-tier officer verifies it (see /outbreaks/<id>/verify) — a
+-- field report alone must not be able to trigger a province-wide panic
+-- notification unreviewed. Once verified, visible to every user in the
+-- affected province (a real safety warning), not just Vet/Police
+-- oversight — see /outbreaks GET.
 CREATE TABLE IF NOT EXISTS outbreaks (
   id              INT AUTO_INCREMENT PRIMARY KEY,
   disease_name    VARCHAR(120) NOT NULL,
@@ -500,9 +509,13 @@ CREATE TABLE IF NOT EXISTS outbreaks (
   affected_farms  INT DEFAULT 0,
   animals_at_risk VARCHAR(60),
   reported_by     INT NOT NULL,
+  verified_status ENUM('pending','verified','rejected') NOT NULL DEFAULT 'pending',
+  verified_by     INT NULL,             -- FK → users.id (the national-tier officer who verified/rejected it)
+  verified_at     TIMESTAMP NULL,
   created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   resolved_at     TIMESTAMP NULL,
-  FOREIGN KEY (reported_by) REFERENCES users(id) ON DELETE CASCADE
+  FOREIGN KEY (reported_by) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (verified_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
 -- ── ORDERS (Supplier fulfillment) ────────────────────────────────

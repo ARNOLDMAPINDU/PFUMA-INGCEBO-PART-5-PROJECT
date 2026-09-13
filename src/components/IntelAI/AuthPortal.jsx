@@ -224,6 +224,7 @@ const AuthPortal = ({ onLogin }) => {
     badgeNumber: apiUser.badge_number,
     station: apiUser.station,
     jurisdictionProvince: apiUser.jurisdiction_province,
+    officerTier: apiUser.officer_tier,
     institutionType: apiUser.institution_type,
     verificationStatus: apiUser.verification_status,
     nextOfKinName: apiUser.next_of_kin_name,

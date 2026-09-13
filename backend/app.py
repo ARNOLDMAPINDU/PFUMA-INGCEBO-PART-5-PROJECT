@@ -388,6 +388,15 @@ def ensure_schema():
     add_column_if_missing('users', 'next_of_kin_relationship', "next_of_kin_relationship VARCHAR(60)")
     add_column_if_missing('users', 'next_of_kin_verification_status', "next_of_kin_verification_status ENUM('pending','verified') NOT NULL DEFAULT 'pending'")
     add_column_if_missing('users', 'institution_type', "institution_type ENUM('Bank','Insurer','Other') NULL")
+    # Senior/chief-tier Vet or Police account (Provincial Veterinary
+    # Officer, DVS head, regional ZRP command, etc.) — sees nationwide
+    # instead of being scoped to one region, and is who verifies an
+    # outbreak report before it broadcasts to farmers. Admin-assigned only.
+    add_column_if_missing('users', 'officer_tier', "officer_tier ENUM('field','national') NOT NULL DEFAULT 'field'")
+
+    add_column_if_missing('outbreaks', 'verified_status', "verified_status ENUM('pending','verified','rejected') NOT NULL DEFAULT 'pending'")
+    add_column_if_missing('outbreaks', 'verified_by', "verified_by INT NULL")
+    add_column_if_missing('outbreaks', 'verified_at', "verified_at TIMESTAMP NULL")
 
     add_column_if_missing('marketplace_listings', 'photo_url', "photo_url VARCHAR(300)")
     add_column_if_missing('marketplace_listings', 'sold_at', "sold_at TIMESTAMP NULL")
@@ -814,6 +823,16 @@ def officer_region(user):
     return user.get('jurisdiction_province') or user.get('province')
 
 
+def is_national_officer(user):
+    """A senior/chief-tier Vet or Police account — sees nationwide like
+    Admin does, instead of being scoped to officer_region(). Kept as its
+    own check rather than folded into officer_region() returning None,
+    because a missing/unset region must still DENY access, not grant it —
+    conflating the two would silently promote any officer with no
+    province on file to de-facto national access."""
+    return user.get('role') in ('Veterinarian', 'Police') and user.get('officer_tier') == 'national'
+
+
 def public_user_view(user, requester):
     """Redacts a user row to what `requester` is allowed to see about `user`."""
     is_self = requester and requester['id'] == user['id']
@@ -830,6 +849,8 @@ def public_user_view(user, requester):
         'org_name': user['org_name'], 'province': user['province'], 'district': user['district'],
         'avatar_url': user.get('avatar_url'),
     }
+    if user['role'] in ('Veterinarian', 'Police'):
+        base['officer_tier'] = user.get('officer_tier', 'field')
     # Business-facing roles publish contact info as part of their function on the
     # platform; Farmers and Police do not (contact happens via listings/messenger).
     if user['role'] in ('Veterinarian', 'Supplier', 'Buyer'):
@@ -1650,14 +1671,16 @@ def get_animals():
     """
     params = []
     # Oversight roles (Vet, Police) can browse across farms, but only
-    # within their own allocated region — not nationwide. Cross-province
-    # access for an actual investigation goes through /clearances and the
-    # theft-report workflow, which are legitimately cross-province and
-    # scoped separately. Everyone else only ever sees their own herd.
+    # within their own allocated region — not nationwide, unless they're
+    # national-tier (a chief/senior officer). Cross-province access for an
+    # actual investigation goes through /clearances and the theft-report
+    # workflow, which are legitimately cross-province and scoped
+    # separately. Everyone else only ever sees their own herd.
     if requester['role'] in ('Veterinarian', 'Police'):
-        region = officer_region(requester)
-        if region:
-            sql += " AND u.province = %s"; params.append(region)
+        if not is_national_officer(requester):
+            region = officer_region(requester)
+            if region:
+                sql += " AND u.province = %s"; params.append(region)
     else:
         sql += " AND a.owner_id = %s"; params.append(requester['id'])
     if for_sale is not None:
@@ -2059,7 +2082,9 @@ def get_animal_geofence(animal_id):
         return jsonify({"error": "Animal not found"}), 404
     requester = g.current_user
     is_own_animal = animal['owner_id'] == requester['id']
-    is_in_region = requester['role'] in ('Veterinarian', 'Police') and animal['owner_province'] == officer_region(requester)
+    is_in_region = requester['role'] in ('Veterinarian', 'Police') and (
+        is_national_officer(requester) or animal['owner_province'] == officer_region(requester)
+    )
     if not (is_own_animal or is_in_region or requester['role'] == 'Admin'):
         return jsonify({"error": "Not authorized to view this animal's geofence"}), 403
 
@@ -2085,7 +2110,9 @@ def get_health(animal_id):
         db.close(); return jsonify({"error": "Animal not found"}), 404
     requester = g.current_user
     is_own_animal = animal['owner_id'] == requester['id']
-    is_in_region = requester['role'] in ('Veterinarian', 'Police') and animal['owner_province'] == officer_region(requester)
+    is_in_region = requester['role'] in ('Veterinarian', 'Police') and (
+        is_national_officer(requester) or animal['owner_province'] == officer_region(requester)
+    )
     if not (is_own_animal or is_in_region):
         db.close(); return jsonify({"error": "Not authorized to view this animal's health records"}), 403
     c.execute("SELECT * FROM health_events WHERE animal_id = %s ORDER BY event_date DESC", (animal_id,))
@@ -2816,12 +2843,13 @@ def get_inventory(owner_id):
     if requester['id'] != owner_id:
         if requester['role'] != 'Veterinarian':
             return jsonify({"error": "Not authorized to view this medicine cabinet"}), 403
-        db = get_db(); c = db.cursor()
-        c.execute("SELECT province FROM users WHERE id=%s", (owner_id,))
-        owner = c.fetchone()
-        db.close()
-        if not owner or owner['province'] != officer_region(requester):
-            return jsonify({"error": "Not authorized to view this medicine cabinet"}), 403
+        if not is_national_officer(requester):
+            db = get_db(); c = db.cursor()
+            c.execute("SELECT province FROM users WHERE id=%s", (owner_id,))
+            owner = c.fetchone()
+            db.close()
+            if not owner or owner['province'] != officer_region(requester):
+                return jsonify({"error": "Not authorized to view this medicine cabinet"}), 403
     db = get_db()
     c = db.cursor()
     c.execute("SELECT * FROM medicine_inventory WHERE owner_id = %s", (owner_id,))
@@ -4036,6 +4064,13 @@ def send_broadcast():
         return jsonify({"error": "message is required"}), 400
     if not province:
         return jsonify({"error": "province is required"}), 400
+    # A field-tier officer can broadcast to their own region only — without
+    # this, any Vet/Police account could message every farmer in a
+    # province they have no actual connection to just by naming it here.
+    # National-tier officers (see officer_tier) are exempt, same as
+    # everywhere else region-scoping applies.
+    if not is_national_officer(g.current_user) and province != officer_region(g.current_user):
+        return jsonify({"error": "You can only broadcast within your own allocated region"}), 403
 
     db = get_db()
     c = db.cursor()
@@ -4664,8 +4699,12 @@ def complete_vet_request(req_id):
 
 
 # ── OUTBREAKS ──────────────────────────────────────────────────
-# Visible to every user in the affected province — a real safety warning,
-# not just Vet/Police oversight. Only Vet/Police can file or update one.
+# A field report from any Vet/Police officer is NOT broadcast on its own —
+# it starts verified_status='pending' and only a national-tier officer
+# (or Admin) confirming it via /outbreaks/<id>/verify triggers the real
+# farmer-facing alert fan-out. Unverified reports would otherwise let one
+# officer's mistaken or malicious report cause a province-wide panic
+# notification with no review step at all.
 @app.route('/outbreaks', methods=['POST'])
 @require_auth
 @require_role('Veterinarian', 'Police')
@@ -4687,44 +4726,113 @@ def report_outbreak():
     ))
     outbreak_id = c.lastrowid
 
-    # Fan out a real alert to every farmer in the affected province — an
-    # outbreak report that only sits in this table never reaches anyone in
-    # the field, which was the whole complaint this fixes.
-    district = d.get('district', '')
-    c.execute("SELECT id FROM users WHERE role='Farmer' AND province=%s AND account_status='active'", (province,))
-    farmers = c.fetchall()
-    alert_title = f"{d['disease_name']} outbreak — {province}"
-    alert_message = f"{d['disease_name']} reported in {district + ', ' if district else ''}{province}. {d.get('details', '')}".strip()
-    for f in farmers:
-        create_notification(c, f['id'], 'outbreak_alert', alert_title, alert_message)
+    # Notify the national-tier officers who can actually verify this —
+    # NOT farmers yet. See /outbreaks/<id>/verify for the fan-out that
+    # happens once (if) this is confirmed.
+    c.execute("""
+        SELECT id FROM users
+        WHERE role IN ('Veterinarian','Police') AND officer_tier='national' AND account_status='active'
+    """)
+    reviewers = c.fetchall()
+    review_title = f"Verify outbreak report: {d['disease_name']}"
+    review_message = f"{g.current_user['full_name']} reported {d['disease_name']} in {province}. Review and verify before it broadcasts to farmers."
+    for r in reviewers:
+        create_notification(c, r['id'], 'outbreak_pending_review', review_title, review_message, related_user_id=g.current_user['id'])
 
     db.commit()
     db.close()
-    return jsonify({"id": outbreak_id, "message": "Outbreak reported ✅", "notified_count": len(farmers)})
+    return jsonify({"id": outbreak_id, "message": "Outbreak report submitted for verification.", "reviewers_notified": len(reviewers)})
+
+
+@app.route('/outbreaks/<int:outbreak_id>/verify', methods=['PATCH'])
+@require_auth
+def verify_outbreak(outbreak_id):
+    """Confirms or dismisses a pending outbreak report. Only a
+    national-tier Vet/Police officer or Admin may do this — the whole
+    point is that the person filing a report in the field isn't the one
+    who gets to also decide it's true. Confirming is what actually fans
+    the alert out to every farmer in the province; rejecting quietly
+    closes it out (no alert, no panic) but keeps the record for audit."""
+    if not (is_national_officer(g.current_user) or g.current_user['role'] == 'Admin'):
+        return jsonify({"error": "Only a national-tier officer or Admin can verify an outbreak report"}), 403
+    d = request.json or {}
+    action = d.get('action')
+    if action not in ('verify', 'reject'):
+        return jsonify({"error": "action must be 'verify' or 'reject'"}), 400
+
+    db = get_db()
+    c = db.cursor()
+    c.execute("SELECT * FROM outbreaks WHERE id=%s", (outbreak_id,))
+    outbreak = c.fetchone()
+    if not outbreak:
+        db.close(); return jsonify({"error": "Outbreak report not found"}), 404
+    if outbreak['verified_status'] != 'pending':
+        db.close(); return jsonify({"error": f"This report has already been {outbreak['verified_status']}"}), 409
+
+    new_status = 'verified' if action == 'verify' else 'rejected'
+    c.execute(
+        "UPDATE outbreaks SET verified_status=%s, verified_by=%s, verified_at=NOW() WHERE id=%s",
+        (new_status, g.current_user['id'], outbreak_id)
+    )
+
+    notified = 0
+    if action == 'verify':
+        # NOW it's a real safety warning — fan out to every farmer in the
+        # affected province, same alert the old unreviewed path used to
+        # send immediately on report.
+        c.execute("SELECT id FROM users WHERE role='Farmer' AND province=%s AND account_status='active'", (outbreak['province'],))
+        farmers = c.fetchall()
+        alert_title = f"{outbreak['disease_name']} outbreak — {outbreak['province']}"
+        district = outbreak['district'] or ''
+        alert_message = f"{outbreak['disease_name']} confirmed in {district + ', ' if district else ''}{outbreak['province']}. {outbreak['details'] or ''}".strip()
+        for f in farmers:
+            create_notification(c, f['id'], 'outbreak_alert', alert_title, alert_message)
+        notified = len(farmers)
+    else:
+        create_notification(
+            c, outbreak['reported_by'], 'outbreak_rejected',
+            f"Outbreak not verified: {outbreak['disease_name']}",
+            f"{g.current_user['full_name']} reviewed your {outbreak['disease_name']} report and could not verify it. It was not broadcast.",
+            related_user_id=g.current_user['id'],
+        )
+
+    db.commit()
+    db.close()
+    return jsonify({"message": f"Outbreak report {new_status}", "notified_count": notified})
 
 
 @app.route('/outbreaks', methods=['GET'])
 @require_auth
 def get_outbreaks():
+    requester = g.current_user
     # Disease outbreaks are a national-broadcast concern for oversight
     # roles — a Vet/Police officer scoped to their own region for private
     # farmer data (see officer_region) still needs to see an outbreak
     # crossing in from a neighbouring province, so they default to every
     # province unless they explicitly narrow it down. Everyone else
     # (Farmer etc.) still defaults to their own province.
-    if g.current_user['role'] in ('Veterinarian', 'Police'):
+    if requester['role'] in ('Veterinarian', 'Police'):
         province = request.args.get('province')
     else:
-        province = request.args.get('province') or g.current_user.get('province')
+        province = request.args.get('province') or requester.get('province')
     status = request.args.get('status', 'active')
+    # Only a verified outbreak is a real, confirmed warning — that's what
+    # everyone (Farmer included) sees by default. An officer reviewing the
+    # queue explicitly asks for the other states; a Farmer passing the
+    # same query param is ignored, not trusted to self-select "pending".
+    requested_verified = request.args.get('verified_status')
+    if requested_verified and requester['role'] in ('Veterinarian', 'Police', 'Admin'):
+        verified_status = requested_verified
+    else:
+        verified_status = 'verified'
     db = get_db()
     c = db.cursor()
     sql = """
         SELECT o.*, u.full_name AS reported_by_name
         FROM outbreaks o JOIN users u ON o.reported_by = u.id
-        WHERE 1=1
+        WHERE o.verified_status = %s
     """
-    params = []
+    params = [verified_status]
     if province:
         sql += " AND o.province = %s"; params.append(province)
     if status:
@@ -5527,12 +5635,13 @@ def get_dashboard(user_id):
     if user_id != requester['id']:
         if requester['role'] != 'Police':
             return jsonify({"error": "Not authorized to view this dashboard"}), 403
-        db = get_db(); c = db.cursor()
-        c.execute("SELECT province FROM users WHERE id=%s", (user_id,))
-        target = c.fetchone()
-        db.close()
-        if not target or target['province'] != officer_region(requester):
-            return jsonify({"error": "Not authorized to view this dashboard"}), 403
+        if not is_national_officer(requester):
+            db = get_db(); c = db.cursor()
+            c.execute("SELECT province FROM users WHERE id=%s", (user_id,))
+            target = c.fetchone()
+            db.close()
+            if not target or target['province'] != officer_region(requester):
+                return jsonify({"error": "Not authorized to view this dashboard"}), 403
     db = get_db()
     c = db.cursor()
     # Herd Value/count means the herd currently owned — an animal with a
@@ -5816,6 +5925,35 @@ def admin_reset_password(user_id):
         # is never echoed back, same principle as never storing it in plaintext.
         "new_password": new_password if generated else None,
     })
+
+
+@app.route('/admin/users/<int:user_id>/officer-tier', methods=['PATCH'])
+@require_auth
+@require_admin
+def admin_set_officer_tier(user_id):
+    """Promotes/demotes a Vet or Police account between 'field' (their own
+    allocated region only — see officer_region/is_national_officer) and
+    'national' (sees every province, and is who's authorized to verify an
+    outbreak report before it broadcasts). A real chief/DVS-head/senior
+    ZRP command account — deliberately Admin-only, never self-service."""
+    d = request.json or {}
+    tier = d.get('officer_tier')
+    if tier not in ('field', 'national'):
+        return jsonify({"error": "officer_tier must be 'field' or 'national'"}), 400
+
+    db = get_db()
+    c = db.cursor()
+    c.execute("SELECT id, full_name, role FROM users WHERE id=%s", (user_id,))
+    target = c.fetchone()
+    if not target:
+        db.close(); return jsonify({"error": "User not found"}), 404
+    if target['role'] not in ('Veterinarian', 'Police'):
+        db.close(); return jsonify({"error": "officer_tier only applies to Veterinarian and Police accounts"}), 400
+
+    c.execute("UPDATE users SET officer_tier=%s WHERE id=%s", (tier, user_id))
+    db.commit()
+    db.close()
+    return jsonify({"message": f"{target['full_name']} is now {tier}-tier"})
 
 
 @app.route('/admin/users/<int:user_id>', methods=['DELETE'])
