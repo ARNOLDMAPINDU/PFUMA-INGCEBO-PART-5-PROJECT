@@ -800,6 +800,20 @@ def require_verified(fn):
     return wrapper
 
 
+def officer_region(user):
+    """A Veterinarian/Police officer's own allocated region, for scoping
+    their read access to other farmers' private data (health records,
+    medicine cabinet, live geofence) to the area they were actually
+    assigned — not nationwide just because their role is Vet or Police.
+    Police carry a distinct jurisdiction_province (their assigned area,
+    which can differ from their personal address province); Vet only
+    has the one province field. Investigative workflows that are
+    legitimately cross-province by nature (stock-theft tracking,
+    sale-clearance queues, outbreak broadcasts) are NOT scoped by this —
+    only casual/browse access to another farmer's private records is."""
+    return user.get('jurisdiction_province') or user.get('province')
+
+
 def public_user_view(user, requester):
     """Redacts a user row to what `requester` is allowed to see about `user`."""
     is_self = requester and requester['id'] == user['id']
@@ -1635,9 +1649,16 @@ def get_animals():
         FROM animals a JOIN users u ON a.owner_id = u.id WHERE 1=1
     """
     params = []
-    # Oversight roles (Vet, Police) can see across farms; everyone else only
-    # ever sees their own herd — animal/health data is private by default.
-    if requester['role'] not in ('Veterinarian', 'Police'):
+    # Oversight roles (Vet, Police) can browse across farms, but only
+    # within their own allocated region — not nationwide. Cross-province
+    # access for an actual investigation goes through /clearances and the
+    # theft-report workflow, which are legitimately cross-province and
+    # scoped separately. Everyone else only ever sees their own herd.
+    if requester['role'] in ('Veterinarian', 'Police'):
+        region = officer_region(requester)
+        if region:
+            sql += " AND u.province = %s"; params.append(region)
+    else:
         sql += " AND a.owner_id = %s"; params.append(requester['id'])
     if for_sale is not None:
         sql += " AND a.for_sale = %s"; params.append(1 if for_sale == 'true' else 0)
@@ -2031,12 +2052,15 @@ def _latest_geofence(owner_id):
 @require_auth
 def get_animal_geofence(animal_id):
     db = get_db(); c = db.cursor()
-    c.execute("SELECT owner_id FROM animals WHERE id=%s", (animal_id,))
+    c.execute("SELECT a.owner_id, u.province AS owner_province FROM animals a JOIN users u ON a.owner_id = u.id WHERE a.id=%s", (animal_id,))
     animal = c.fetchone()
     db.close()
     if not animal:
         return jsonify({"error": "Animal not found"}), 404
-    if g.current_user['role'] not in ('Veterinarian', 'Police', 'Admin') and animal['owner_id'] != g.current_user['id']:
+    requester = g.current_user
+    is_own_animal = animal['owner_id'] == requester['id']
+    is_in_region = requester['role'] in ('Veterinarian', 'Police') and animal['owner_province'] == officer_region(requester)
+    if not (is_own_animal or is_in_region or requester['role'] == 'Admin'):
         return jsonify({"error": "Not authorized to view this animal's geofence"}), 403
 
     zone = _latest_geofence(animal['owner_id'])
@@ -2055,11 +2079,14 @@ def get_animal_geofence(animal_id):
 def get_health(animal_id):
     db = get_db()
     c = db.cursor()
-    c.execute("SELECT owner_id FROM animals WHERE id = %s", (animal_id,))
+    c.execute("SELECT a.owner_id, u.province AS owner_province FROM animals a JOIN users u ON a.owner_id = u.id WHERE a.id = %s", (animal_id,))
     animal = c.fetchone()
     if not animal:
         db.close(); return jsonify({"error": "Animal not found"}), 404
-    if g.current_user['role'] not in ('Veterinarian', 'Police') and animal['owner_id'] != g.current_user['id']:
+    requester = g.current_user
+    is_own_animal = animal['owner_id'] == requester['id']
+    is_in_region = requester['role'] in ('Veterinarian', 'Police') and animal['owner_province'] == officer_region(requester)
+    if not (is_own_animal or is_in_region):
         db.close(); return jsonify({"error": "Not authorized to view this animal's health records"}), 403
     c.execute("SELECT * FROM health_events WHERE animal_id = %s ORDER BY event_date DESC", (animal_id,))
     events = c.fetchall()
@@ -2785,8 +2812,16 @@ def animal_timeline(animal_id):
 @app.route('/inventory/<int:owner_id>', methods=['GET'])
 @require_auth
 def get_inventory(owner_id):
-    if g.current_user['id'] != owner_id and g.current_user['role'] != 'Veterinarian':
-        return jsonify({"error": "Not authorized to view this medicine cabinet"}), 403
+    requester = g.current_user
+    if requester['id'] != owner_id:
+        if requester['role'] != 'Veterinarian':
+            return jsonify({"error": "Not authorized to view this medicine cabinet"}), 403
+        db = get_db(); c = db.cursor()
+        c.execute("SELECT province FROM users WHERE id=%s", (owner_id,))
+        owner = c.fetchone()
+        db.close()
+        if not owner or owner['province'] != officer_region(requester):
+            return jsonify({"error": "Not authorized to view this medicine cabinet"}), 403
     db = get_db()
     c = db.cursor()
     c.execute("SELECT * FROM medicine_inventory WHERE owner_id = %s", (owner_id,))
@@ -4671,7 +4706,16 @@ def report_outbreak():
 @app.route('/outbreaks', methods=['GET'])
 @require_auth
 def get_outbreaks():
-    province = request.args.get('province') or g.current_user.get('province')
+    # Disease outbreaks are a national-broadcast concern for oversight
+    # roles — a Vet/Police officer scoped to their own region for private
+    # farmer data (see officer_region) still needs to see an outbreak
+    # crossing in from a neighbouring province, so they default to every
+    # province unless they explicitly narrow it down. Everyone else
+    # (Farmer etc.) still defaults to their own province.
+    if g.current_user['role'] in ('Veterinarian', 'Police'):
+        province = request.args.get('province')
+    else:
+        province = request.args.get('province') or g.current_user.get('province')
     status = request.args.get('status', 'active')
     db = get_db()
     c = db.cursor()
@@ -5479,8 +5523,16 @@ def dry_season_budget():
 @app.route('/dashboard/<int:user_id>', methods=['GET'])
 @require_auth
 def get_dashboard(user_id):
-    if user_id != g.current_user['id'] and g.current_user['role'] != 'Police':
-        return jsonify({"error": "Not authorized to view this dashboard"}), 403
+    requester = g.current_user
+    if user_id != requester['id']:
+        if requester['role'] != 'Police':
+            return jsonify({"error": "Not authorized to view this dashboard"}), 403
+        db = get_db(); c = db.cursor()
+        c.execute("SELECT province FROM users WHERE id=%s", (user_id,))
+        target = c.fetchone()
+        db.close()
+        if not target or target['province'] != officer_region(requester):
+            return jsonify({"error": "Not authorized to view this dashboard"}), 403
     db = get_db()
     c = db.cursor()
     # Herd Value/count means the herd currently owned — an animal with a
