@@ -5727,6 +5727,45 @@ def admin_set_user_status(user_id):
     return jsonify({"message": f"Account {new_status}"})
 
 
+@app.route('/admin/users/<int:user_id>/password', methods=['PATCH'])
+@require_auth
+@require_admin
+def admin_reset_password(user_id):
+    """Locked-out user support — a farmer/vet/etc who forgot their password
+    has no self-service reset (no email/SMS sending is wired up yet), so an
+    Admin sets a new one here and relays it out of band, exactly like the
+    temporary password an existing officer sets when provisioning a new one
+    (see provision_officer). Leaving `new_password` out generates a random
+    one so an admin never has to invent a "secure enough" password by hand.
+    """
+    d = request.json or {}
+    new_password = (d.get('new_password') or '').strip()
+    generated = False
+    if not new_password:
+        new_password = os.urandom(6).hex()
+        generated = True
+    elif len(new_password) < 8:
+        return jsonify({"error": "Password must be at least 8 characters"}), 400
+
+    db = get_db()
+    c = db.cursor()
+    c.execute("SELECT id, full_name FROM users WHERE id=%s", (user_id,))
+    target = c.fetchone()
+    if not target:
+        db.close(); return jsonify({"error": "User not found"}), 404
+
+    password_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
+    c.execute("UPDATE users SET password_hash=%s WHERE id=%s", (password_hash, user_id))
+    db.commit()
+    db.close()
+    return jsonify({
+        "message": f"Password reset for {target['full_name']}",
+        # Only handed back when we generated it — an admin-supplied password
+        # is never echoed back, same principle as never storing it in plaintext.
+        "new_password": new_password if generated else None,
+    })
+
+
 @app.route('/admin/users/<int:user_id>', methods=['DELETE'])
 @require_auth
 @require_admin

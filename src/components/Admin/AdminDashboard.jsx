@@ -4,7 +4,7 @@ import {
   CheckCircle, XCircle, ShoppingCart, AlertTriangle, Handshake, Package,
   Ban, RotateCcw, Satellite, Navigation, Crosshair, Thermometer, Heart,
   BatteryMedium, Play, Pause, RadioTower, Target, Save, Trash2,
-  Upload, Database, FileSpreadsheet, UserPlus, Eye, X, MapPin, Calendar, Shield, DollarSign, Tag, RefreshCw,
+  Upload, Database, FileSpreadsheet, UserPlus, Eye, X, MapPin, Calendar, Shield, DollarSign, Tag, RefreshCw, Key,
 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
@@ -104,6 +104,29 @@ const UsersTab = ({ currentUser }) => {
     setBusyId(null);
   };
 
+  // No email/SMS sending is wired up, so there's no self-service "forgot
+  // password" — this is how a locked-out user actually gets back in:
+  // Admin sets a new password and relays it out of band. Leaving the
+  // prompt blank auto-generates one so nobody has to invent a "secure
+  // enough" password by hand.
+  const resetPassword = async (u) => {
+    const custom = window.prompt(`New password for ${u.full_name} (8+ characters, or leave blank to auto-generate one):`);
+    if (custom === null) return;
+    setBusyId(u.id);
+    try {
+      const res = await fetch(`${API}/admin/users/${u.id}/password`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentUser.token}` },
+        body: JSON.stringify({ new_password: custom }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { window.alert(data.error || 'Could not reset this password.'); return; }
+      window.alert(data.new_password
+        ? `New password for ${u.full_name}: ${data.new_password}\n\nShare this with them directly — it won't be shown again.`
+        : `Password updated for ${u.full_name}.`);
+    } catch { window.alert('Could not reach the PFUMA/INGCEBO API.'); }
+    setBusyId(null);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-3">
@@ -170,6 +193,11 @@ const UsersTab = ({ currentUser }) => {
                 {u.next_of_kin_name && u.next_of_kin_verification_status === 'pending' && (
                   <button onClick={() => verifyNextOfKin(u.id)} disabled={busyId === u.id} className="shrink-0 p-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-lg transition disabled:opacity-50" aria-label={`Verify ${u.full_name}'s next of kin`} title={`Verify next of kin: ${u.next_of_kin_name}`}>
                     <UserPlus size={14} />
+                  </button>
+                )}
+                {u.id !== currentUser.id && (
+                  <button onClick={() => resetPassword(u)} disabled={busyId === u.id} className="shrink-0 p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg transition disabled:opacity-50" aria-label={`Reset ${u.full_name}'s password`} title="Reset password">
+                    <Key size={14} />
                   </button>
                 )}
                 {u.role !== 'Admin' && u.id !== currentUser.id && (
