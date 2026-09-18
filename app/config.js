@@ -1,9 +1,8 @@
-// Live production API (VPS, HTTPS via Caddy) — works from anywhere,
-// which is the whole point for the show: nobody's phone is on the same
-// LAN as a laptop hotspot. For local-only testing against a Flask dev
-// server instead, temporarily swap this back to your PC's LAN IP
-// (ipconfig → IPv4 Address), e.g. 'http://192.168.1.42:5000'.
-export const API = 'https://38-247-146-172.sslip.io:8443/api';
+// Academic build: runs entirely against the local Flask + XAMPP MySQL
+// stack on this machine, no VPS dependency. A physical phone (Expo Go)
+// needs the dev machine's LAN IP, not 'localhost' — find it with
+// `ipconfig` (IPv4 Address) and update the value below if it changes.
+export const API = 'http://10.11.246.53:5000/api';
 
 // RN registers each weight of a custom font as its own distinct font
 // family (no CSS-style weight cascade within one family name) — loaded

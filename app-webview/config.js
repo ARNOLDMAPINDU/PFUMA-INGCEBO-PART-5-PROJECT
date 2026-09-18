@@ -1,10 +1,10 @@
 // The single source of truth this app displays — the PFUMA web app.
 // This is the whole point of app-webview: one UI, not two codebases.
 //
-// Defaults to the real production HTTPS deployment, so a build shipped as-is
-// works off any network and never sends logins/tokens in the clear. For
-// local development on a physical device, override with EXPO_PUBLIC_WEB_URL
-// set to your PC's LAN IP (not localhost/127.0.0.1 — the phone is a
-// separate device on the network; find it with `ipconfig`, look for "IPv4
-// Address"). For an emulator/simulator, localhost usually works.
-export const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL || 'https://38-247-146-172.sslip.io:8443';
+// Academic build: points at the Vite dev server running locally on this
+// machine (`npm run dev`, default port 5173), not a hosted deployment —
+// there is no VPS dependency. A physical phone needs the dev machine's
+// LAN IP, not localhost (find it with `ipconfig`, "IPv4 Address");
+// override with EXPO_PUBLIC_WEB_URL if that IP changes. An
+// emulator/simulator can usually use localhost directly.
+export const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL || 'http://10.11.246.53:5173';
