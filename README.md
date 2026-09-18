@@ -47,7 +47,7 @@ Structured ticketing system localized for Zimbabwe.
 
 ### 5. Police Oversight & Sale Clearance
 A fifth stakeholder role modelling real-world livestock-trade law enforcement.
-- **Signup Verification Queue:** Police review Farmer/Supplier/Retailer applications (Vets are peer-reviewed by an existing verified vet); Police accounts are provisioned out-of-band, not self-service.
+- **Signup Verification Queue:** Police review Farmer/Supplier/Buyer applications (Vets are peer-reviewed by an existing verified vet); Police accounts are provisioned out-of-band, not self-service.
 - **Sale Clearance Queue:** Every livestock marketplace listing tied to a registered animal starts `pending_clearance` and stays invisible to buyers until an officer verifies ownership/brand papers and issues a movement permit number.
 - **Document Verification at Signup:** Every role uploads an ID document plus a role-specific credential (DVS license, business registration, land proof, etc.) — see `compliance/signup-verification-requirements.md`.
 
@@ -67,6 +67,18 @@ Livestock, feed, medicine and equipment listings in one feed.
 
 ### 9. PFUMA/INGCEBO Messenger
 Direct in-app chat connecting every role — farmers, vets, suppliers and buyers — across Zimbabwe, filterable by role (Vets / Suppliers / Farmers / Buyers) so a farmer can go straight to the DVS officer or supplier they need instead of a phone call and a guess.
+
+### 10. Institutions — Turning Livestock Into Usable Collateral
+A sixth stakeholder role for banks and insurers.
+- **Certificate Lookup:** An Institution enters a valuation certificate code (issued by a vet for a specific animal) and instantly sees a verified record — identity, health history, estimated market value — instead of taking a borrower's word for what their herd is worth.
+- **Collateral/Insurance Flagging:** The Institution can flag a certificate in its own private ledger for loan-collateral or insurance-underwriting purposes, and keeps a running record of every certificate it has looked up.
+- This is what makes "livestock wealth is easier to borrow against" (see below) a real, working feature rather than just a talking point.
+
+### 11. Farmer Cooperatives
+Farmers can form or join a cooperative to coordinate as a group rather than individually — a shared dip-tank schedule visible to every member, and group vet-consultation requests raised on the cooperative's behalf instead of each farmer messaging separately.
+
+### 12. National Outbreak Reporting
+Any Farmer or Veterinarian can report a suspected disease outbreak. A Veterinarian or Admin verifies it, and verification automatically broadcasts a notification to farmers in the affected area — turning informal "have you heard..." warnings into a real, timestamped, region-scoped alert system that feeds the same regional surveillance picture DVS needs for contact tracing.
 
 ## 🐄 The Journey of One Animal
 
@@ -93,16 +105,17 @@ Every headline feature maps to a specific Act — researched, cited, and in the 
 | Animal records capture brand mark, tag ID and dip-tank; "no brand on record" is flagged before a sale | Brands Act + Livestock Identification Regs |
 | Jinda pushes toward DVS or police reporting when a notifiable-disease pattern appears | Animal Health Act [19:01] |
 | Cross-district sales prompt for a DVS veterinary movement permit alongside police clearance | The "two-gate" movement process |
-| Retailer signup requires acknowledging disclosure, fixed pricing and the statutory right of return | Consumer Protection Act [14:44] |
+| Buyer signup requires acknowledging disclosure, fixed pricing and the statutory right of return | Consumer Protection Act [14:44] |
 
 ## 🌾 What This Changes
 
 | For | The change |
 |---|---|
-| **The Farmer** | Ownership he can prove, disease caught early, and a fair, documented sales channel instead of an isolated lowball offer. Verified profiles and clean sale history also make livestock wealth easier to borrow against. |
-| **The Veterinarian** | Fewer wasted trips and real outbreak visibility. Province and district tagging builds exactly the regional surveillance data DVS needs for contact tracing. |
-| **Suppliers and Retailers** | A direct channel to the farmers who need their stock, and buyers who are no longer one bad purchase away from a receiving-stolen-goods charge. |
+| **The Farmer** | Ownership he can prove, disease caught early, and a fair, documented sales channel instead of an isolated lowball offer. Cooperatives let neighbouring farmers coordinate dip-tank schedules and vet requests as a group. |
+| **The Veterinarian** | Fewer wasted trips and real outbreak visibility. Province and district tagging, plus the verified outbreak-reporting workflow, builds exactly the regional surveillance data DVS needs for contact tracing. |
+| **Suppliers and Buyers** | A direct channel to the farmers who need their stock, and buyers who are no longer one bad purchase away from a receiving-stolen-goods charge. |
 | **Police and DVS** | Clearance stops being a paper courtesy and becomes a structural gate. Officers review from a queue instead of chasing paperwork on foot. |
+| **Banks and Insurers** | A verified certificate lookup replaces "trust the borrower" with a real record — livestock wealth becomes usable collateral, not just a claim on a loan application. |
 | **The Country** | Fewer disease deaths, less theft, better price discovery and easier access to credit compound into real rural household income — a measurable outcome, not a technology showcase. |
 
 ## 🛠️ Technical Stack

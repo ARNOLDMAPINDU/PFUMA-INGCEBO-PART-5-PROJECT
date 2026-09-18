@@ -4,6 +4,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 HERE = Path(__file__).resolve().parent
+OUT_DIR = HERE / "DOCUMENTATION" / "source-materials"
 
 PAGES = [
     ("wiring_cn01.html", "PFUMA_CN01_Wiring_Diagram.pdf", "wiring_cn01_preview.png"),
@@ -23,7 +24,7 @@ with sync_playwright() as p:
 
         page.screenshot(path=str(HERE / png_name), full_page=True)
         page.pdf(
-            path=str(HERE / pdf_name),
+            path=str(OUT_DIR / pdf_name),
             width="1700px",
             height=f"{height}px",
             print_background=True,

@@ -133,7 +133,7 @@ Every endpoint except `/`, `/auth/register`, `/auth/login`, `/feed`, and `/feed/
 
 | Table | Owner | Purpose |
 |---|---|---|
-| `users` | Shared | All 5 roles: Farmer, Vet, Supplier, Retailer, Police — with password hash + verification status |
+| `users` | Shared | All 7 roles: Farmer, Vet, Supplier, Buyer, Police, Admin, Institution — with password hash + verification status |
 | `animals` | Arnold | Herd registry with pedigree |
 | `weight_history` | Arnold | Weight tracking per animal |
 | `health_events` | Arnold | Vaccinations, treatments, diagnostics |

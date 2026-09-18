@@ -5,6 +5,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 HERE = Path(__file__).resolve().parent
+OUT_DIR = HERE / "DOCUMENTATION" / "source-materials"
 html_path = HERE / "poster_public.html"
 
 with sync_playwright() as p:
@@ -19,7 +20,7 @@ with sync_playwright() as p:
     page.screenshot(path=str(HERE / "poster_public_preview.png"), full_page=True)
 
     page.pdf(
-        path=str(HERE / "PFUMA_Poster_Public.pdf"),
+        path=str(OUT_DIR / "PFUMA_Poster_Public.pdf"),
         width="1800px",
         height=f"{height}px",
         print_background=True,
@@ -27,4 +28,4 @@ with sync_playwright() as p:
     )
     browser.close()
 
-print("Saved PFUMA_Poster_Public.pdf and poster_public_preview.png")
+print("Saved DOCUMENTATION/source-materials/PFUMA_Poster_Public.pdf and poster_public_preview.png")

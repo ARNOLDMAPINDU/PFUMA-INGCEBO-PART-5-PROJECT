@@ -1,7 +1,7 @@
 # PFUMA/INGCEBO — Booth Pitch Guide
 ### For explaining PFUMA/INGCEBO to a crowd at the Zimbabwe Agricultural Show 2026
 
-This is not a technical document — it's a script and a set of talking points for standing at the stand and actually selling the idea to whoever walks up, in the thirty seconds you have before they decide whether to keep listening. Read it once before the show, then keep it nearby as a cheat sheet. For the technical deep-dive, use `PFUMA_Poster.pdf`; for the plain-language handout, use `PFUMA_Poster_Public.pdf`; for the legal/impact case, use `IMPACT_AND_COMPLIANCE.md`. This doc is for your *voice*, not for handing out.
+This is not a technical document — it's a script and a set of talking points for standing at the stand and actually selling the idea to whoever walks up, in the thirty seconds you have before they decide whether to keep listening. Read it once before the show, then keep it nearby as a cheat sheet. For the technical deep-dive, use [`DOCUMENTATION/source-materials/PFUMA_Poster.pdf`](DOCUMENTATION/source-materials/PFUMA_Poster.pdf); for the plain-language handout, use [`DOCUMENTATION/source-materials/PFUMA_Poster_Public.pdf`](DOCUMENTATION/source-materials/PFUMA_Poster_Public.pdf); for the legal/impact case, use `IMPACT_AND_COMPLIANCE.md`. This doc is for your *voice*, not for handing out.
 
 ---
 
@@ -27,7 +27,7 @@ Real number worth memorizing: a single ZRP crackdown led to **over 3,400 arrests
 
 ## 3. What PFUMA/INGCEBO actually is (the 30-second version)
 
-> "PFUMA/INGCEBO is one platform with five kinds of accounts — Farmer, Veterinarian, Supplier, Retailer, and Police — that all plug into the same livestock record. A farmer registers an animal, a vet can certify its health, a police officer has to clear it before it's sold, and a buyer can see all of that before they hand over money. It's the paper trail everyone already *should* have, except it's real, it's digital, and nobody can fake it after the fact."
+> "PFUMA/INGCEBO is one platform with six kinds of accounts — Farmer, Veterinarian, Supplier, Buyer, Police, and now Banks/Insurers — that all plug into the same livestock record. A farmer registers an animal, a vet can certify its health, a police officer has to clear it before it's sold, and a buyer can see all of that before they hand over money. It's the paper trail everyone already *should* have, except it's real, it's digital, and nobody can fake it after the fact."
 
 If they want more: it also has an AI assistant (Jinda) that answers farming and legal questions in plain language — including "what do I legally need before I can sell this animal?" — drawing on researched Zimbabwean livestock law rather than guesswork.
 
@@ -38,7 +38,7 @@ If they want more: it also has an AI assistant (Jinda) that answers farming and 
 Ask them what they do, or guess from context, then use the matching pitch:
 
 ### 🌾 If they're a farmer
-> "You register your animals once — breed, tag, brand, health record. After that, PFUMA/INGCEBO tracks weight, vaccination due-dates, and health for you. If you ever want to sell, you list it on the Marketplace, and because it's already tied to your verified profile, buyers trust it more and police clear it faster. And if there's ever a dispute about whose animal it is, you're not arguing from memory — the record is already there, with the vet's notes and the clearance attached."
+> "You register your animals once — breed, tag, brand, health record. After that, PFUMA/INGCEBO tracks weight, vaccination due-dates, and health for you. If you ever want to sell, you list it on the Marketplace, and because it's already tied to your verified profile, buyers trust it more and police clear it faster. And if there's ever a dispute about whose animal it is, you're not arguing from memory — the record is already there, with the vet's notes and the clearance attached. If your neighbours are in a cooperative with you, you can even share a dip-tank schedule and raise vet requests as a group instead of everyone messaging separately."
 
 ### 🩺 If they're a vet
 > "You get a caseload dashboard by province and district — real disease surveillance data, not guesswork. Farmers message you directly through the app for consultations, and when you certify an animal's health or issue a movement permit, that becomes part of the animal's permanent record. It's fewer wasted trips and better outbreak visibility."
@@ -51,6 +51,9 @@ Ask them what they do, or guess from context, then use the matching pitch:
 
 ### 👮 If they're police, or you're pitching the law-enforcement angle
 > "Right now a listing can't go live until an officer verifies ownership and brand papers and issues a movement permit — that's built into the software, not a suggestion. It mirrors exactly what the Stock Theft Prevention Act already requires; we just made it impossible to skip the step."
+
+### 🏦 If they're a bank, microfinance officer, or insurer
+> "A vet issues a valuation certificate for a specific animal, with a code on it. You look that code up in your own dashboard — verified identity, health history, estimated market value — instead of taking a borrower's word for what their herd is worth. You can flag it in your own ledger for a loan or a policy, and it stays there. This is the piece that actually turns livestock into usable collateral, not just a line on a loan application."
 
 ---
 
@@ -96,7 +99,7 @@ If they're a farmer/vet/supplier genuinely interested beyond the demo: take thei
 ## 8. If you only remember five things
 
 1. **Pfuma = wealth (Shona)** — and this protects it.
-2. **Five roles, one shared record** — Farmer, Vet, Supplier, Retailer, Police.
+2. **Six roles, one shared record** — Farmer, Vet, Supplier, Buyer, Police, and Banks/Insurers.
 3. **A sale can't go live until police clear it** — that's the headline feature.
 4. **Real numbers**: 500,000+ cattle lost to January Disease since 2016; 3,400+ arrests in one stock-theft crackdown.
 5. **It's real** — working backend, working database, researched legal compliance. Not a mockup.

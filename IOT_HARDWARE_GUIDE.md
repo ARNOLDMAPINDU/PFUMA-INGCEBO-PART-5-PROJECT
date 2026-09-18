@@ -11,7 +11,7 @@ This guide covers the **Physical Hardware Layer** of PFUMA/INGCEBO: how to conne
 ### Real wiring diagrams and reference photos
 
 This section is the walkthrough; for the actual build reference, use:
-- [`PFUMA_CN01_Wiring_Diagram.pdf`](../PFUMA_CN01_Wiring_Diagram.pdf) / [`PFUMA_BS01_Wiring_Diagram.pdf`](../PFUMA_BS01_Wiring_Diagram.pdf) — real, pin-level, colour-coded wiring diagrams (regenerate with `python make_wiring_diagrams.py && python render_wiring_diagrams.py` if the design changes). These are module-interconnection diagrams for perfboard/breadboard building, not the simplified Proteus simulation circuit in §2 below.
+- [`DOCUMENTATION/source-materials/PFUMA_CN01_Wiring_Diagram.pdf`](DOCUMENTATION/source-materials/PFUMA_CN01_Wiring_Diagram.pdf) / [`DOCUMENTATION/source-materials/PFUMA_BS01_Wiring_Diagram.pdf`](DOCUMENTATION/source-materials/PFUMA_BS01_Wiring_Diagram.pdf) — real, pin-level, colour-coded wiring diagrams (regenerate with `python make_wiring_diagrams.py && python render_wiring_diagrams.py` if the design changes). These are module-interconnection diagrams for perfboard/breadboard building, not the simplified Proteus simulation circuit in §2 below.
 - [`hardware/actual_equipment/README.md`](hardware/actual_equipment/README.md) — reference photos and exact order/search terms for every real component in the BOM.
 - [`hardware/HARDWARE_DESIGN.md`](hardware/HARDWARE_DESIGN.md) — the full pin-by-pin netlist and BOM these diagrams are generated from (source of truth if anything conflicts).
 
