@@ -638,8 +638,9 @@ def build():
         prs, "Work Carried Out",
         ["The backend API and database schema are built and running, "
          "covering all seven roles.",
-         "The web app and the mobile app are both built, close to feature "
-         "parity.",
+         "The web app is built and demoed live; the mobile app is built "
+         "and reaches the same backend, but has not yet been exercised "
+         "on a physical device.",
          "The marketplace, clearance, certification, outbreak-reporting, "
          "messenger, cooperative, health-compliance, feed/trading and "
          "assistant workflows are all implemented end to end.",
@@ -651,7 +652,7 @@ def build():
         [
             ("Backend API / DB", "DONE", GREEN),
             ("Web app", "DONE", GREEN),
-            ("Mobile app", "DONE", GREEN),
+            ("Mobile app", "BUILT", ORANGE),
             ("Core workflows*", "DONE", GREEN),
             ("Local deployment", "DONE", GREEN),
             ("Dissertation", "IN PROGRESS", ORANGE),
@@ -668,7 +669,15 @@ def build():
               "assistant - say this if asked what the pill covers. Be "
               "honest and confident: the platform itself is built and "
               "demoable locally; the remaining work is the academic "
-              "write-up, not the software.",
+              "write-up, not the software. On Jinda specifically, if "
+              "asked how smart it is: it correctly handles a recognised "
+              "request, including one typed in Shona, and actually "
+              "navigates the app - shown live in testing. It does not "
+              "reason through an open-ended question (tested: asked why "
+              "a vaccine was overdue, it fell back to a generic keyword "
+              "match instead of answering). Say this plainly if asked - "
+              "it is a fixed rule set, not a language model, by design "
+              "(see Table 3.1), and that tradeoff is the honest answer.",
     )
 
     # 12. Closing
