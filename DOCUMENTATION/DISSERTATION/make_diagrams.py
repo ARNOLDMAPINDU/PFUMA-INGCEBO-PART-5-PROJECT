@@ -74,6 +74,68 @@ def fig_3_1_system_block():
     plt.close(fig)
 
 
+def fig_3_2_verification_pattern():
+    """The one pending -> verified/cleared -> released pattern reused for
+    sale clearance, signup verification, movement permits and outbreak
+    broadcast - confirmed by live testing in Chapter 4, not asserted."""
+    fig, ax = plt.subplots(figsize=(11, 4.2))
+    ax.set_xlim(0, 11)
+    ax.set_ylim(0, 4.2)
+    ax.axis("off")
+
+    stages = ["ACTION\nCREATED", "PENDING\nVERIFICATION", "AUTHORITY\nREVIEW"]
+    x = 0.4
+    for text in stages:
+        box(ax, x, 2.4, 2.4, 1.1, text, ORANGE, fontsize=9)
+        arrow(ax, x + 2.4, 2.95, x + 2.9, 2.95)
+        x += 3.0
+
+    box(ax, x, 2.4, 2.3, 1.1, "RELEASED\nvisible / effective", GREEN, fontsize=9)
+    arrow(ax, x + 1.15, 2.4, x + 1.15, 1.3)
+    box(ax, x - 3.0, 0.3, 2.3, 1.0, "REJECTED\nstays hidden", "#BE4141", fontsize=9)
+    arrow(ax, x - 0.6, 1.3, x - 1.85, 1.3)
+
+    ax.text(5.5, 3.85,
+             "Reused for: sale clearance · new-account signup · movement permits · outbreak broadcast",
+             ha="center", fontsize=9, style="italic")
+    ax.set_title("Figure 3.2: The Shared Verification-Gate State Pattern", fontsize=11)
+    fig.tight_layout()
+    fig.savefig(os.path.join(OUT_DIR, "fig_3_2_verification_pattern.png"), dpi=200)
+    plt.close(fig)
+
+
+def fig_3_3_entity_relationship():
+    """Simplified ERD - the entities and relationships already described in
+    ch3.py's Table 3.2, drawn rather than only tabulated."""
+    fig, ax = plt.subplots(figsize=(11, 7.8))
+    ax.set_xlim(0, 11)
+    ax.set_ylim(0, 7.8)
+    ax.axis("off")
+
+    box(ax, 4.3, 6.5, 2.4, 0.8, "users\n(role column)", PURPLE, fontsize=9)
+
+    entities = [
+        (0.3, 5.0, "animals"), (0.3, 3.6, "health_events /\nweight_history"),
+        (0.3, 2.2, "compliance_cases /\ncompliance_actions"),
+        (3.0, 5.0, "marketplace_\nlistings"), (3.0, 3.6, "sale_clearances /\nmovement_permits"),
+        (3.0, 2.2, "bids / orders"),
+        (5.7, 5.0, "valuation_\ncertificates"), (5.7, 3.6, "certificate_\nlookups"),
+        (5.7, 2.2, "outbreaks"),
+        (8.4, 5.0, "cooperatives /\nmembers"), (8.4, 3.6, "feed_types /\nfeeding_plans"),
+        (8.4, 2.2, "conversations /\nmessages"),
+    ]
+    for x, y, label in entities:
+        box(ax, x, y, 2.2, 0.9, label, BLUE, fontsize=8)
+        arrow(ax, x + 1.1, y + 0.9, 5.4, 6.5)
+
+    ax.set_title("Figure 3.3: Simplified Entity-Relationship Diagram", fontsize=11)
+    fig.tight_layout()
+    fig.savefig(os.path.join(OUT_DIR, "fig_3_3_entity_relationship.png"), dpi=200)
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     fig_3_1_system_block()
+    fig_3_2_verification_pattern()
+    fig_3_3_entity_relationship()
     print("Saved diagrams to", OUT_DIR)

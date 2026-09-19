@@ -160,6 +160,11 @@ SECTIONS = [
                  "The cross-role messenger (3.3.10)."],
             ],
         }},
+        {"figure": {
+            "number": "3.3",
+            "caption": "Simplified entity-relationship diagram",
+            "path": "diagrams/fig_3_3_entity_relationship.png",
+        }},
 
         {"subheading": "3.3.4 Role-Based Access-Control Design"},
         "Every authenticated request carries a JSON Web Token issued at "
@@ -176,7 +181,13 @@ SECTIONS = [
         "a protected route requested by a non-administrator returns the "
         "same not-found response a route that genuinely does not exist "
         "would return, rather than a forbidden response that would "
-        "confirm the route exists.",
+        "confirm the route exists. A newly registered account carries a "
+        "verification_status of pending and is queued for a Police "
+        "officer, or, for a Veterinarian applicant, an already-verified "
+        "peer, to resolve to verified or rejected before the account is "
+        "treated as fully trusted elsewhere in the platform — the same "
+        "pending-to-resolved pattern described fully in 3.3.5 and shown "
+        "in Figure 3.2.",
 
         {"subheading": "3.3.5 Marketplace and Sale-Clearance Workflow Design"},
         "A marketplace listing carries a status of pending_clearance, "
@@ -201,6 +212,19 @@ SECTIONS = [
         "short transfer code a seller generates and a buyer redeems, "
         "which moves ownership and the animal's full history the same "
         "way an ordinary marketplace sale does.",
+        "The clearance itself follows a single pattern reused four times "
+        "across the platform, shown in Figure 3.2: an action is created "
+        "and immediately held pending, an authority reviews it, and it is "
+        "then either released, becoming visible or effective, or "
+        "rejected and kept hidden. The same shape governs a new "
+        "account's signup verification (3.3.4), a movement permit "
+        "(above), and an outbreak report before it broadcasts (3.3.8) — "
+        "it is one mechanism applied four times, not four separate ones.",
+        {"figure": {
+            "number": "3.2",
+            "caption": "The shared verification-gate state pattern",
+            "path": "diagrams/fig_3_2_verification_pattern.png",
+        }},
 
         {"subheading": "3.3.6 Health-and-Compliance Lifecycle Design"},
         "A server-side protocol table, independent of anything the "

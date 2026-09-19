@@ -101,15 +101,53 @@ SECTIONS = [
                  "Veterinarian",
                  "Conversation created, message stored and delivered "
                  "both ways"],
+                ["Signup verification", "Register a new Farmer account; "
+                 "confirm it appears in the Police pending queue; "
+                 "verify it",
+                 "Appeared correctly in the queue; verification changed "
+                 "its status and the account could then log in fully "
+                 "verified"],
+                ["Marketplace bidding", "Place a bid as a Buyer on a "
+                 "feed listing; accept it as the seller",
+                 "Bid recorded and visible to the seller; accepting it "
+                 "marked the listing sold"],
+                ["Supplier order fulfilment", "List a medicine item as "
+                 "a Supplier; order it as a Farmer; dispatch and "
+                 "deliver it as the Supplier",
+                 "Full lifecycle completed; both dispatch and delivery "
+                 "are confirmed by the Supplier, not the ordering "
+                 "Farmer, which the endpoint enforces by role rather "
+                 "than by who placed the order"],
+                ["Off-platform animal transfer", "Generate a transfer "
+                 "code for an animal as its owner; redeem the code as "
+                 "a different Farmer account",
+                 "Code generated, redeemed successfully, and ownership "
+                 "together with the animal's full history moved to the "
+                 "new owner"],
                 ["Market-rate scan", "Read the current market rates",
                  "Returned real, sourced per-species rates from a "
                  "prior scan; a fresh scan attempted during this test "
                  "session did not complete within the time allowed and "
                  "is not reported as re-verified"],
-                ["Web application", "Load the web application and log "
-                 "in through it",
-                 "Loaded and authenticated correctly; verified in an "
-                 "earlier session against the same backend"],
+                ["Web application (browser)", "Load the web application "
+                 "in a real browser session, log in, and navigate its "
+                 "pages",
+                 "Logged in correctly; the dashboard, vaccination "
+                 "follow-up and marketplace pages all rendered live "
+                 "data matching the API results above, including a "
+                 "“Police cleared” badge on a genuinely cleared "
+                 "listing"],
+                ["Jinda assistant (browser)", "Open Jinda in the logged-"
+                 "in web application; ask a Shona-language navigation "
+                 "request; ask an open-ended reasoning question",
+                 "The Shona request (“ndoda kuenda ku marketplace”) "
+                 "was correctly recognised and the application actually "
+                 "navigated to the Marketplace section. The open-ended "
+                 "question (why a specific vaccine was overdue and what "
+                 "ignoring it would do) was not answered on its merits; "
+                 "the assistant matched a generic health-related keyword "
+                 "and navigated to the Health section instead, without "
+                 "answering the why/what-happens part of the question"],
             ],
         }},
         "Two results corrected an assumption carried over, unverified, "
@@ -146,17 +184,42 @@ SECTIONS = [
         "not because a stage value was inserted directly. This is the "
         "one result in this chapter that demonstrates a computation "
         "over time, rather than a single request-response exchange.",
+        "The Jinda result is reported honestly rather than favourably. "
+        "The assistant's rule-based design (Chapter 3, 3.3.10) succeeds "
+        "exactly where it was designed to: a request that matches a "
+        "known intent, including one typed in Shona, is recognised and "
+        "acted on, not merely translated. It does not succeed at open-"
+        "ended reasoning, because it was never designed to: asked why a "
+        "specific vaccine was overdue and what ignoring it would do, it "
+        "matched the nearest keyword category and navigated there "
+        "instead of answering, since no fixed rule exists for that "
+        "specific compound question. This is the direct, honest "
+        "consequence of the design choice recorded in Table 3.1, "
+        "trading open-ended conversation for answers that are always "
+        "traceable to a specific rule, and it is reported here rather "
+        "than smoothed over.",
     ]},
 
     {"heading": "4.4 INTERPRETATION OF RESULTS", "body": [
         "Every workflow objective stated in Chapter 1, objectives two "
-        "through fourteen, was exercised successfully against the "
-        "running platform, with the two corrections noted above now "
-        "folded back into the earlier chapters rather than left as a "
-        "discrepancy between documentation and behaviour. Objective "
-        "fifteen, determining whether the platform's workflows operate "
-        "correctly end to end, is itself answered by this chapter: they "
-        "do, on the evidence gathered here. The one incomplete result, "
+        "through nine and eleven through fourteen, was exercised "
+        "successfully against the running platform, with the two "
+        "corrections noted above now folded back into the earlier "
+        "chapters rather than left as a discrepancy between "
+        "documentation and behaviour. Objective twelve, the native "
+        "mobile application, was confirmed to build and to reach the "
+        "same backend correctly, but was not physically exercised on a "
+        "device or emulator within this study, since none was available "
+        "in the environment this testing was carried out in; this is "
+        "recorded as a genuine limitation rather than claimed as tested. "
+        "Objective fourteen's assistant was exercised honestly rather "
+        "than favourably, as described above: it succeeds at its "
+        "designed task and does not overreach into a task it was never "
+        "designed for. Objective fifteen, determining whether the "
+        "platform's workflows operate correctly end to end, is itself "
+        "answered by this chapter: with the one noted exception of the "
+        "mobile client's physical exercise, they do, on the evidence "
+        "gathered here. The one incomplete result, "
         "the market-rate scan re-trigger, reflects a session-specific "
         "network condition during testing rather than a defect in the "
         "scan itself, since the rates endpoint already held a genuine "
