@@ -7,4 +7,4 @@
 // LAN IP, not localhost (find it with `ipconfig`, "IPv4 Address");
 // override with EXPO_PUBLIC_WEB_URL if that IP changes. An
 // emulator/simulator can usually use localhost directly.
-export const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL || 'http://10.11.246.53:5173';
+export const WEB_URL = process.env.EXPO_PUBLIC_WEB_URL || 'http://192.168.100.199:5173';

@@ -109,20 +109,38 @@ SECTIONS = [
         "livestock listing created for sale is held back from buyers "
         "until a police officer has recorded clearance against it, "
         "reproducing in software the ownership-and-clearance sequence "
-        "already expected of a lawful sale. A veterinary practitioner can "
-        "issue a valuation certificate carrying a code that anyone, "
-        "including a bank or insurer, can look up independently, turning "
-        "a health record into something that can support a loan "
-        "application rather than only a private note in a practitioner's "
-        "file.",
+        "already expected of a lawful sale. An animal's owner can issue "
+        "a valuation certificate carrying a code that anyone, including "
+        "a bank or insurer, can look up independently; its value is "
+        "computed by the platform itself from the animal's weight, a "
+        "per-species market rate, and a bonus reflecting the animal's "
+        "logged veterinary health events, turning that health record "
+        "into something that can support a loan application rather than "
+        "only a private note in a practitioner's file. The same shared "
+        "record drives automatic vaccination, weaning and gestation "
+        "countdowns that raise a compliance case when a deadline is "
+        "missed, and feeds a market-rate scan that keeps an animal's "
+        "estimated value current rather than static. The platform "
+        "further supports a secure messenger reaching any role directly, "
+        "a farmer cooperative's shared dip-tank schedule and group "
+        "veterinary request, a feed-formulation function that plans a "
+        "farmer's own dry-season feed budget, a trading-journal function "
+        "summarising a supplier's or buyer's own trade history, an "
+        "outbreak-reporting pipeline that broadcasts a verified disease "
+        "alert to every affected farmer, and a role-aware "
+        "natural-language assistant that answers a farmer's health and "
+        "legal-compliance questions in plain language. Every function is "
+        "delivered through both a web application and a native mobile "
+        "application, so no role is limited to a single device.",
     ]},
 
     {"heading": "1.5 AIM", "body": [
-        "The aim of the project is to develop a verified digital "
-        "livestock registry and marketplace platform that gates a sale "
-        "behind police clearance and veterinary certification, giving "
-        "farmers, buyers, and financial institutions a trustworthy record "
-        "of livestock ownership and health.",
+        "The aim of the project is to develop a role-based digital "
+        "platform connecting farmers, veterinary practitioners, "
+        "suppliers, buyers, police officers and financial institutions "
+        "around a single verified livestock record, giving every role a "
+        "shared registry, marketplace, messaging and clearance system in "
+        "place of separate paper trails.",
     ]},
 
     {"heading": "1.6 OBJECTIVES", "body": [
@@ -134,21 +152,47 @@ SECTIONS = [
             "roles.",
             "To develop a livestock registry that records an animal's "
             "identity, health timeline and ownership history.",
+            "To develop a health-and-compliance lifecycle that tracks a "
+            "vaccination, weaning or gestation countdown and raises a "
+            "compliance case when a deadline is missed.",
             "To develop a marketplace listing mechanism that withholds a "
             "livestock listing from a buyer until police clearance has "
             "been recorded against it.",
-            "To develop a veterinary certification workflow that issues "
-            "a publicly verifiable valuation certificate for a "
-            "registered animal.",
+            "To develop a valuation-certificate workflow that computes "
+            "and issues a publicly verifiable certificate for a "
+            "registered animal, informed by its logged veterinary "
+            "health events.",
             "To create an institution ledger function that allows a "
             "valuation certificate to be looked up and flagged for "
             "loan-collateral purposes.",
             "To develop an outbreak-reporting and verification pipeline "
             "that broadcasts a confirmed disease alert to farmers in the "
             "affected region.",
+            "To develop a farmer cooperative function that shares a "
+            "dip-tank schedule and raises a group veterinary request on "
+            "behalf of multiple members.",
+            "To develop a feed-formulation function that plans a "
+            "farmer's dry-season feed budget, and a trading-journal "
+            "function that summarises a supplier's or buyer's own "
+            "trade history.",
+            "To calculate an estimated market value for a registered "
+            "animal from its species, weight and recorded health "
+            "history, fed by an automated market-rate scan.",
+            "To develop a web-based application giving every platform "
+            "role browser access to the system.",
+            "To develop a native mobile application, alongside the web "
+            "application, giving each platform role access to the "
+            "system from a mobile device.",
+            "To develop a secure, end-to-end messaging function linking "
+            "the Farmer, Veterinarian, Supplier, Buyer, Police and "
+            "Institution roles directly within the platform.",
+            "To develop a role-aware natural-language assistant that "
+            "answers a farmer's livestock-health and legal-compliance "
+            "questions and navigates the application on request.",
             "To determine, by deploying and exercising the completed "
-            "platform locally, whether the clearance, certification and "
-            "outbreak-reporting workflows operate correctly end to end.",
+            "platform locally, whether its registry, marketplace, "
+            "compliance, cooperative and communication workflows all "
+            "operate correctly end to end.",
         ]},
     ]},
 
@@ -173,8 +217,13 @@ SECTIONS = [
         "not previously been implemented as production software. The "
         "resulting system integrates role-based access control, a "
         "multi-role relational schema, a verification-gated marketplace "
-        "workflow, and a public certificate-lookup mechanism within a "
-        "single coherent platform, which is a demonstration of "
+        "workflow, a public certificate-lookup mechanism, a direct "
+        "messaging function reaching every role, a verify-then-broadcast "
+        "disease-reporting pipeline, and a role-aware natural-language "
+        "assistant built on custom logic rather than a hosted third-party "
+        "language model, delivered across both a web application and a "
+        "native mobile application, within a single coherent platform, "
+        "which is a demonstration of "
         "independent systems-design and full-stack software-engineering "
         "capability appropriate to a final-year Telecommunications "
         "Engineering project.",
@@ -189,9 +238,11 @@ SECTIONS = [
         "platform covers four livestock species relevant to the "
         "Zimbabwean smallholder and commercial context: cattle, goats, "
         "sheep and pigs. The scope includes the marketplace and "
-        "sale-clearance workflow, the veterinary certification and "
+        "sale-clearance workflow, the valuation-certificate and "
         "institution-ledger workflow, the outbreak-reporting and "
-        "verification workflow, and the supporting authentication, "
+        "verification workflow, the health-and-compliance lifecycle, the "
+        "feed-formulation and trading-journal function, the role-aware "
+        "natural-language assistant, and the supporting authentication, "
         "messaging and cooperative features built around them. The "
         "platform was deployed and evaluated on a local development "
         "server rather than on public infrastructure, for the purposes "
@@ -239,8 +290,8 @@ SECTIONS = [
         "and sets out the research theories informing the design. "
         "Chapter 3 presents the system design, covering the software "
         "architecture, the database schema, the role-based access-control "
-        "design, and the design of the marketplace, certification and "
-        "outbreak-reporting workflows. Chapter 4 presents the results of "
+        "design, and the design of each of the platform's cross-cutting "
+        "workflows. Chapter 4 presents the results of "
         "testing the implemented platform and interprets those results "
         "against the objectives stated in this chapter. Chapter 5 "
         "presents recommendations, identifies future work, and concludes "

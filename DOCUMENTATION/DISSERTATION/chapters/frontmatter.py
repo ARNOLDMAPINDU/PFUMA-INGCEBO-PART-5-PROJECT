@@ -21,9 +21,10 @@ TITLE_PAGE = {
         "TELECOMMUNICATIONS ENGINEERING"
     ),
     "title": (
-        "DEVELOPMENT OF A VERIFIED DIGITAL LIVESTOCK REGISTRY AND "
-        "MARKETPLACE PLATFORM WITH POLICE-GATED SALE CLEARANCE "
-        "(PFUMA/INGCEBO)"
+        "ROLE-BASED DIGITAL PLATFORM CONNECTING CATTLE AND GOAT FARMERS, "
+        "VETERINARIANS, SUPPLIERS, BUYERS, POLICE AND FINANCIAL "
+        "INSTITUTIONS AROUND A VERIFIED LIVESTOCK REGISTRY, MARKETPLACE "
+        "AND SALE-CLEARANCE SYSTEM (PFUMA/INGCEBO)"
     ),
     "student": "Arnold T. Mapindu",
     "reg_number": "[STUDENT NUMBER]",
@@ -110,9 +111,10 @@ ABSTRACT = [
     "Zimbabwean livestock trade.",
 
     "The platform was built, deployed on a local server, and exercised "
-    "directly, and its clearance, certification, and outbreak-reporting "
-    "workflows were confirmed to operate end to end. The study concluded "
-    "that a verified-record pattern of this kind is achievable entirely in "
+    "directly, and its registry, marketplace, compliance and "
+    "communication workflows were confirmed to operate end to end. The "
+    "study concluded that a verified-record pattern of this kind is "
+    "achievable entirely in "
     "software, and that it directly addresses the traceability gap "
     "identified at the outset.",
 ]
@@ -121,8 +123,8 @@ KEYWORDS = [
     "Livestock traceability",
     "Digital registry",
     "Role-based access control",
-    "Sale clearance",
-    "Verification platform",
+    "Verification-gated marketplace",
+    "Multi-role platform",
     "Mobile application",
     "Relational database",
     "Agricultural technology",

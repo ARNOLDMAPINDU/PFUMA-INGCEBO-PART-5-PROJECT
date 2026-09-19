@@ -2,7 +2,7 @@
 // stack on this machine, no VPS dependency. A physical phone (Expo Go)
 // needs the dev machine's LAN IP, not 'localhost' — find it with
 // `ipconfig` (IPv4 Address) and update the value below if it changes.
-export const API = 'http://10.11.246.53:5000/api';
+export const API = 'http://192.168.100.199:5000/api';
 
 // RN registers each weight of a custom font as its own distinct font
 // family (no CSS-style weight cascade within one family name) — loaded

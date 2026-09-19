@@ -206,29 +206,69 @@ single fastest way to lose marks and credibility.
 
 - 2026-09-18 — No supervisor assigned yet. Registration number not yet issued/known.
 
-## 9. Dissertation builder infrastructure (added 2026-09-18)
+## 9. Where things live — folder structure (updated 2026-09-19)
 
-Reused the working pattern from the sibling Fault-Injection project rather than inventing a new
-one. To regenerate the full document: `python thesis_builder.py` (generic renderer, implements
-every formatting rule in §4.2 — Times New Roman, margins, heading sizes, roman/arabic page
-numbering, `[[key]]` citation resolution, tables/figures/appendices). Content lives in
-`chapters/`: `frontmatter.py` (title page, declaration, abstract, acronyms — all placeholders
-kept honest, see §3) and `ch1.py`..`ch5.py` (one module per chapter, `HEADING` + `SECTIONS` +
-optional `REFKEYS`, contract documented at the top of each file).
+Every academic build artefact lives under `DOCUMENTATION/`, alongside the existing product docs
+(`PLATFORM_OVERVIEW.md` etc.) and `source-materials/` — nothing dissertation-related belongs
+loose in the project root. Two subfolders:
 
-- **Chapter 1 (Introduction) is fully drafted** — all 11 sections, citing four real Zimbabwean
-  statutes already researched and cross-sourced in `compliance/laws/` (Stock Theft Prevention Act,
-  Animal Health Act, Brands Act, Veterinary Surgeons Act). No invented literature citations were
-  used — Chapter 1 doesn't need them; Chapter 2 will, and those must be real, checkable sources,
-  never fabricated.
-- **Chapters 2-5 are placeholder stubs only** (`[ Pending ]` markers in every section) so the
-  builder assembles a complete document without crashing. Do not treat their content as drafted.
-  Chapter 3's §3.2 and Chapter 4's §4.2 both carry an explicit open question about the
-  hardware-flavoured template heading (see §4.1) — resolve that with the supervisor before
-  drafting those two chapters.
-- Builder output: `PFUMA_INGCEBO - Project Documentation.docx` (gitignored-or-not TBD — check
-  before committing whether generated docx output should be tracked or left as a build artefact).
+- **`DOCUMENTATION/DISSERTATION/`** — `thesis_builder.py` (generic .docx renderer, reused from the
+  sibling Fault-Injection project rather than reinvented — implements every formatting rule in
+  §4.2: Times New Roman, margins, heading sizes, roman/arabic page numbering, `[[key]]` citation
+  resolution, tables/figures/appendices), `chapters/` (`frontmatter.py` + `ch1.py`..`ch5.py`, one
+  module per chapter — `HEADING` + `SECTIONS` + optional `REFKEYS`, contract documented at the top
+  of each file), `make_diagrams.py` + `diagrams/` (matplotlib-generated figures, regeneratable,
+  currently just Figure 3.1), and the built `PFUMA_INGCEBO - Project Documentation.docx` itself.
+  Regenerate with `python thesis_builder.py` from inside that folder (all internal paths are
+  relative to the script's own location, so it must be run from there, not the project root).
+- **`DOCUMENTATION/PRESENTATIONS/`** — `make_progress_ppt.py` (the gmoyo-style progress/defense
+  pptx builder) and the built `PFUMA_INGCEBO_Progress_Presentation.pptx`. Regenerate with
+  `python make_progress_ppt.py` from inside that folder, same reason.
+- `CLAUDE.md` itself stays at the project root — Claude Code auto-loads it only from there.
+
+## 10. Dissertation status (updated 2026-09-19)
+
+All five chapters now exist in `chapters/`; two are genuinely drafted, three are still stubs:
+
+- **Chapter 1 (Introduction)** — fully drafted, all 11 sections, citing four real Zimbabwean
+  statutes cross-sourced in `compliance/laws/` (Stock Theft Prevention Act, Animal Health Act,
+  Brands Act, Veterinary Surgeons Act). Objectives now number 15 (expanded twice from an initial
+  7 — see git history — to cover every feature in `DOCUMENTATION/FEATURES_AND_ROLES.md`, including
+  the health-compliance lifecycle, feed/trading tools, and the Jinda assistant, not just the
+  clearance/marketplace/certification trio it started with).
+- **Chapter 3 (System Design)** — fully drafted: architecture, a technology-choice table (each
+  decision justified against a named rejected alternative), a schema/entity table, RBAC design,
+  and all 10 cross-cutting-workflow subsections (3.3.1–3.3.10), each grounded directly in
+  `backend/schema.sql` / `backend/app.py` / `backend/protocols.py` /
+  `src/components/IntelAI/PfumaIntelAI.jsx` — not inferred from prose docs.
+- **Chapter 4 (Results Analysis)** — fully drafted from an actual live test pass: logged in as
+  five real roles against the running local backend and exercised every workflow end to end
+  (registration/login, marketplace clearance visibility, valuation-certificate issue → public
+  verify → institution flag → re-verify, movement-permit request → vet issue with signature,
+  outbreak report → hidden → national-tier verify → broadcast, cooperative → dip schedule → group
+  vet request → vet's queue, feed requirements/dry-season budget, trading journal, messenger).
+  Table 4.1 records exact results. **Testing surfaced two real inaccuracies that had been carried
+  from `DOCUMENTATION/FEATURES_AND_ROLES.md` into Chapters 1 and 3 without being independently
+  checked**: a valuation certificate is issued by the animal's **owner** (or Admin), not a vet —
+  the vet's role is indirect, through the health events that feed its computed value — while a
+  **movement permit** genuinely is vet-issued (requires professional rank VEA/AHI/GVO + an
+  uploaded signature). And the trading journal is **Supplier/Buyer**-only, not farmer-facing. Both
+  corrections are now reflected everywhere (Chapters 1/3/4/5 and the pptx) — this is the concrete
+  lesson: prose documentation describes intent, only the running code and a live test confirm
+  behaviour.
+- **Chapter 5 (Recommendation and Conclusion)** — fully drafted: recommendations (formal
+  ZRP/DVS data-sharing approach, legal review, a small cooperative field trial), future work (the
+  delimited-out IoT hardware track, national RFID integration, poultry coverage, a fuller
+  Shona/Ndebele interface), conclusion.
+- **Chapter 2 (Literature Review) is still a placeholder stub only** (`[ Pending ]` markers).
+  This is the one chapter that genuinely needs real external sources — WebSearch/WebFetch are
+  available as deferred tools in this environment and have not yet been used for it. Never invent
+  a literature citation here; if real sources can't be found for a claim, say so in the text
+  rather than fabricate one.
+- Chapter 3's §3.2 and Chapter 4's §4.2 both still carry the open question about the
+  hardware-flavoured template heading (see §4.1) — resolve with the supervisor before finalizing
+  either.
 
 ---
 
-*Last updated: 2026-09-18.*
+*Last updated: 2026-09-19.*
