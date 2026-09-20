@@ -397,7 +397,7 @@ def build():
     def problem_panel(slide):
         add_box(slide, "UNVERIFIABLE\nRECORD", 8.30, 1.70, 2.70, 0.75, ORANGE)
         add_line(slide, 9.65, 2.45, 9.65, 3.00, DARK, 1.4)
-        add_box(slide, "NO TRUST FOR BUYERS,\nBANKS, OR POLICE", 8.05, 3.05, 3.20, 0.85, RED)
+        add_box(slide, "NO TRUST FOR BUYERS,\nBANKS, POLICE, OR SELLERS\nSEEKING A BUYER", 8.05, 3.05, 3.20, 0.95, RED, size=10)
         add_line(slide, 9.65, 3.90, 9.65, 4.45, DARK, 1.4)
         add_box(slide, "ROLE-BASED PLATFORM\nregistry, marketplace,\nclearance & more",
                 8.05, 4.50, 3.20, 0.95, GREEN, size=11)
@@ -406,8 +406,10 @@ def build():
         prs, "Main Elements of the Problem",
         ["What: livestock ownership and health records exist only on paper, "
          "or not at all.",
-         "Why: this leaves buyers, banks, and police with nothing credible to "
-         "check before a sale, a loan, or an investigation.",
+         "Why: this leaves buyers, banks, and police with nothing credible "
+         "to check before a sale, a loan, or an investigation — and leaves "
+         "a selling farmer with no way to find a certified buyer or a "
+         "credible valuation either.",
          "How: build a role-based digital platform that records the history "
          "and gates resale behind verification."],
         problem_panel,
