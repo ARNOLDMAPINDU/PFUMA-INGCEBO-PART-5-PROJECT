@@ -80,6 +80,14 @@ SECTIONS = [
         "[[ZW-VET-SURGEONS-ACT]]. Each of these legal instruments assumes "
         "a functioning paper trail; none of them currently has a shared "
         "digital system behind it.",
+        "A related, more commercial gap sits alongside the legal one. A "
+        "farmer with an animal to sell has no reliable way to find a "
+        "buyer known to be creditworthy and genuine, and no independent "
+        "figure to point to when negotiating a price, so a sale is "
+        "commonly conducted by word of mouth, with a wandering buyer "
+        "offering whatever price the farmer cannot readily check against "
+        "anything. Certified buyers and a credible valuation are, in "
+        "practice, as hard to find as a clean ownership record is.",
     ]},
 
     {"heading": "1.3 PROBLEM STATEMENT", "body": [
@@ -93,17 +101,23 @@ SECTIONS = [
         "separate, private, and often paper-based account. The result is "
         "that a buyer cannot verify what is being purchased before "
         "paying, a police officer cannot quickly confirm that a listed "
-        "animal has actually been cleared, and a bank or insurer cannot "
-        "treat livestock as usable loan collateral, because no verifiable "
-        "record of its value or ownership history exists to lend "
-        "against.",
+        "animal has actually been cleared, a bank or insurer cannot treat "
+        "livestock as usable loan collateral because no verifiable record "
+        "of its value or ownership history exists to lend against, and a "
+        "farmer with an animal to sell has no efficient way to reach a "
+        "buyer known to be certified and genuine or to point to a "
+        "credible, independent valuation when a price is negotiated.",
     ]},
 
     {"heading": "1.4 SOLUTION", "body": [
         "PFUMA/INGCEBO was developed as a multi-role web and mobile "
         "platform that connects the farmer, the veterinary practitioner, "
         "the supplier, the buyer, the police officer, and a financial "
-        "institution into one shared record. Every registered animal "
+        "institution into one shared record. Because every account on "
+        "the platform has already passed the same signup-verification "
+        "gate described above, a buyer reached through the marketplace "
+        "is a certified one by construction, rather than a stranger a "
+        "farmer must take on faith. Every registered animal "
         "carries an identity, a health timeline and an ownership history "
         "that each authorised role can contribute to and check. A "
         "livestock listing created for sale is held back from buyers "
@@ -227,6 +241,26 @@ SECTIONS = [
         "independent systems-design and full-stack software-engineering "
         "capability appropriate to a final-year Telecommunications "
         "Engineering project.",
+        "The study is further justified by its direct relation to the "
+        "taught programme. Introduction to Computer Engineering and "
+        "Software Engineering I and II underlie the platform's layered "
+        "client-server architecture and its requirements-to-design-to-"
+        "test discipline, documented respectively in Chapter 3 and "
+        "Chapter 4. Cryptography in Telecommunications is applied "
+        "directly in the authentication layer: a password is never "
+        "stored in plain text, only as a bcrypt hash, and every "
+        "authenticated request carries a signed JSON Web Token rather "
+        "than a bare identifier a client could forge. Telecommunications "
+        "Planning and Project Management informed the phased schedule of "
+        "work under which each objective was built and exercised in a "
+        "fixed order rather than attempted simultaneously. Finally, the "
+        "platform fuses the software design, database design, "
+        "data-gathering, development and deployment discipline the "
+        "author developed during his industrial attachment at NetOne "
+        "Zimbabwe, where root-cause-analysis work on a live microwave "
+        "backhaul network required the same combination of structured "
+        "data capture, a defensible schema, and a deployable system that "
+        "this project required.",
     ]},
 
     {"heading": "1.8 SCOPE OF THE STUDY", "body": [

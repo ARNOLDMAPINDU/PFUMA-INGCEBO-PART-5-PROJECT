@@ -205,6 +205,16 @@ single fastest way to lose marks and credibility.
 ## 8. Supervisor guidance log (dated, append-only)
 
 - 2026-09-18 — No supervisor assigned yet. Registration number not yet issued/known.
+- 2026-09-20 — Arnold added a "Relation to my degree" requirement: the dissertation should name
+  the specific taught modules the project draws on (Introduction to Computer Engineering, Software
+  Engineering I, Software Engineering II, Cryptography in Telecommunications, Telecommunications
+  Planning and Project Management) plus the NetOne industrial-attachment experience, and tie each
+  to a concrete part of the actual system rather than name-dropping generically. Folded into §1.7
+  Justification as a third paragraph rather than a new numbered section, to stay inside the locked
+  guidelines structure (§4.1). Also added a missing Background/Problem Statement point: farmers
+  struggle to find a certified buyer or a credible independent valuation, not just a clean
+  ownership record — this was in the original pitch deck
+  (`DOCUMENTATION/source-materials/pfuma 2026 p.pdf`) but had not made it into Chapter 1's prose.
 
 ## 9. Where things live — folder structure (updated 2026-09-19)
 
