@@ -370,6 +370,7 @@ def build():
         add_box(slide, "LOST / FORGED /\nNEVER EXISTED", 11.00, 1.85, 1.90, 0.75, RED)
         add_box(slide, "NO EVIDENCE TRAIL\nFOR STOCK THEFT", 8.40, 3.10, 2.60, 0.80, RED)
         add_box(slide, "WEALTH THAT\nCAN'T BE BORROWED\nAGAINST", 8.40, 4.30, 2.60, 0.95, ORANGE)
+        add_box(slide, "NO CERTIFIED BUYER,\nNO CREDIBLE VALUATION", 8.40, 5.45, 2.60, 0.85, GREY)
 
     build_bullets_with_panel(
         prs, "Background",
@@ -381,7 +382,11 @@ def build():
          "faster than paper record-keeping can respond to them.",
          "Stock theft and ownership disputes have no fast, credible evidence "
          "trail, and livestock wealth cannot easily be used as loan collateral "
-         "without a verifiable record."],
+         "without a verifiable record.",
+         "A farmer selling an animal has no efficient way to find a "
+         "certified buyer or a credible independent valuation, so a sale "
+         "is commonly word of mouth, at whatever price a wandering buyer "
+         "offers."],
         background_panel,
         notes="(2 minutes) This is a real problem, not a hypothetical one — "
               "ground it in the Stock Theft Prevention Act clearance process "

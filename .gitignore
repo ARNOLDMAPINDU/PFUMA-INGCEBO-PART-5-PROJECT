@@ -37,6 +37,10 @@ venv/
 Thumbs.db
 desktop.ini
 
+# Office lock files — created the moment a .docx/.pptx/.xlsx is opened,
+# gone once it's closed; never meant to be committed
+~$*
+
 # Logs
 *.log
 npm-debug.log*
